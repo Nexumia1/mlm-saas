@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLM SaaS Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f8fafc;--surface:#ffffff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#6366f1;--primary-dark:#4f46e5;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--sidebar-w:240px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e1b4b,#0f172a)}
+.login-card{background:white;border-radius:20px;padding:40px;width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-icon{width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 12px}
+.login-title{font-size:20px;font-weight:800;color:#0f172a}
+.login-sub{font-size:13px;color:#64748b;margin-top:3px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.input{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;transition:.15s;color:#0f172a}
+.input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.login-btn{width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:.15s}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,.4)}
+.login-error{background:#fef2f2;border:1px solid #fee2e2;color:#ef4444;padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none}
+.demo-creds{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;margin-top:14px;font-size:11px;color:#0284c7;text-align:center;line-height:1.9}
+
+/* APP */
+#app{display:none;height:100vh;overflow:hidden}
+.layout{display:flex;height:100vh}
+#sidebar{width:var(--sidebar-w);background:white;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sb-top{padding:16px;border-bottom:1px solid var(--border)}
+.sb-brand{display:flex;align-items:center;gap:10px}
+.sb-icon{width:34px;height:34px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:15px}
+.sb-name{font-size:13px;font-weight:700;color:var(--text)}
+.sb-plan{font-size:10px;color:var(--primary);font-weight:600;margin-top:1px}
+nav{padding:12px 8px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:8px 10px 4px;margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:.15s;margin-bottom:2px}
+.nav-item:hover{background:#f1f5f9;color:var(--text)}
+.nav-item.active{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.sb-bottom{padding:12px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px;background:#f8fafc;border-radius:10px;cursor:pointer}
+.sb-user:hover{background:#f1f5f9}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:600;color:var(--text)}
+.sb-urole{font-size:10px;color:var(--muted)}
+
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;background:white;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:700}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-outline{background:white;border:1.5px solid var(--border);color:var(--muted)}
+.btn-outline:hover{background:#f8fafc;color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:white;border:1.5px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.kpi-icon{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kpi-value{font-size:28px;font-weight:800;color:var(--text);margin:6px 0 4px;line-height:1}
+.kpi-trend{font-size:11px;display:flex;align-items:center;gap:3px}
+.up{color:var(--green)}.down{color:var(--red)}
+
+.card{background:white;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:700}
+.card-body{padding:20px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;background:#f8fafc;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
+.b-new{background:#eff6ff;color:#1d4ed8}
+.b-contacted{background:#fefce8;color:#854d0e}
+.b-qualified{background:#fdf4ff;color:#7e22ce}
+.b-won{background:#f0fdf4;color:#166534}
+.b-lost{background:#fef2f2;color:#991b1b}
+.b-meta{background:#eff6ff;color:#1d4ed8}
+.b-tiktok{background:#fdf4ff;color:#7e22ce}
+.b-active{background:#f0fdf4;color:#166534}
+.b-paused{background:#fffbeb;color:#92400e}
+
+.chart-wrap{position:relative;height:220px}
+
+/* PIPELINE */
+.pipeline{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.pipeline-col{min-width:200px;flex-shrink:0}
+.col-header{padding:10px 12px;border-radius:8px 8px 0 0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between}
+.col-body{background:#f8fafc;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:8px;min-height:120px;display:flex;flex-direction:column;gap:6px}
+.lead-card{background:white;border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:.15s}
+.lead-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px)}
+.lead-name{font-size:12px;font-weight:600;color:var(--text)}
+.lead-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.lead-value{font-size:12px;font-weight:700;color:var(--green);margin-top:6px}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999}
+.toast-item{background:white;border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);animation:slideIn .2s ease}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.t-ok{border-left:3px solid var(--green)}.t-err{border-left:3px solid var(--red)}.t-info{border-left:3px solid var(--primary)}
+
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+
+/* LANG TOGGLE */
+.lang-toggle{display:flex;align-items:center;gap:2px;background:#f1f5f9;border:1.5px solid var(--border);border-radius:20px;padding:3px}
+.lang-btn{padding:3px 10px;border-radius:16px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-size:11px;font-weight:700;transition:.15s}
+.lang-btn.active{background:var(--primary);color:white}
+.lang-toggle-login{position:absolute;top:20px;right:20px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" style="position:relative">
+  <div class="lang-toggle lang-toggle-login">
+    <button class="lang-btn active" onclick="setLang('es')" id="lang-es-login">ES</button>
+    <button class="lang-btn" onclick="setLang('en')" id="lang-en-login">EN</button>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-icon">⚡</div>
+      <div class="login-title">MLM SaaS Platform</div>
+      <div class="login-sub" data-i18n="login_sub">Inicia sesión en tu cuenta</div>
+    </div>
+    <div class="login-error" id="login-error" data-i18n="login_error">Credenciales incorrectas</div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="field_email">Email</label>
+      <input class="input" type="email" id="email" value="admin@mlmsaas.com" placeholder="tu@empresa.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="field_password">Contraseña</label>
+      <input class="input" type="password" id="password" value="Admin123!" placeholder="••••••••">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="login()" data-i18n="btn_login">Iniciar Sesión →</button>
+    <div class="demo-creds">
+      <strong>Demo:</strong> admin@mlmsaas.com / Admin123!<br>
+      <span data-i18n="demo_also">También</span>: <strong>lider@mlmsaas.com</strong> | <strong>afiliado@mlmsaas.com</strong>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <aside id="sidebar">
+      <div class="sb-top">
+        <div class="sb-brand">
+          <div class="sb-icon">M</div>
+          <div>
+            <div class="sb-name" id="tenant-name">MLM SaaS</div>
+            <div class="sb-plan" id="tenant-plan">Plan PRO</div>
+          </div>
+        </div>
+      </div>
+      <nav>
+        <div class="nav-section" data-i18n="nav_main">Principal</div>
+        <div class="nav-item active" onclick="nav('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span data-i18n="nav_dashboard">Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="nav('campaigns')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span data-i18n="nav_campaigns">Campañas</span>
+        </div>
+        <div class="nav-section">CRM</div>
+        <div class="nav-item" onclick="nav('crm')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span data-i18n="nav_leads_crm">Leads / CRM</span>
+        </div>
+        <div class="nav-item" onclick="nav('pipeline')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <span data-i18n="nav_pipeline">Pipeline Kanban</span>
+        </div>
+        <div class="nav-section" data-i18n="nav_comms">Comunicación</div>
+        <div class="nav-item" onclick="nav('whatsapp')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span data-i18n="nav_whatsapp">WhatsApp</span>
+          <span style="margin-left:auto;background:#dcfce7;color:#166534;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px">LIVE</span>
+        </div>
+        <div class="nav-item" onclick="nav('automation')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>
+          <span data-i18n="nav_automation">Automatización</span>
+        </div>
+        <div class="nav-section" data-i18n="nav_reports">Reportes</div>
+        <div class="nav-item" onclick="nav('analytics')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span data-i18n="nav_analytics">Analytics</span>
+        </div>
+        <div class="nav-item" onclick="nav('team')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span data-i18n="nav_team">Mi Equipo</span>
+        </div>
+      </nav>
+      <div class="sb-bottom">
+        <div class="sb-user">
+          <div class="sb-avatar" id="user-avatar">AD</div>
+          <div>
+            <div class="sb-uname" id="user-name">Admin</div>
+            <div class="sb-urole" id="user-role">Agency Admin</div>
+          </div>
+          <button onclick="logout()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px" title="Salir">⏻</button>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <a href="admin.html" style="font-size:11px;color:var(--primary);text-decoration:none;font-weight:600">⚡ Super Admin Panel →</a>
+        </div>
+      </div>
+    </aside>
+
+    <div id="main">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+          <div class="topbar-sub" id="topbar-sub">Vista general de tu cuenta</div>
+        </div>
+        <div class="topbar-right">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:600">
+            <div class="live-dot"></div><span data-i18n="live_label">En tiempo real</span>
+          </div>
+          <div class="lang-toggle">
+            <button class="lang-btn active" onclick="setLang('es')" id="lang-es">ES</button>
+            <button class="lang-btn" onclick="setLang('en')" id="lang-en">EN</button>
+          </div>
+          <button class="btn btn-primary" id="topbar-cta" onclick="topbarCta()" data-i18n="btn_new_lead">+ Nuevo Lead</button>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="grid-4">
+            <div class="kpi"><div class="kpi-icon" style="background:#eff6ff">🎯</div><div class="kpi-label" data-i18n="kpi_total_leads">Leads Totales</div><div class="kpi-value">847</div><div class="kpi-trend up" data-i18n="kpi_total_leads_sub">▲ 12% este mes</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#f0fdf4">💰</div><div class="kpi-label" data-i18n="kpi_pipeline">Valor Pipeline</div><div class="kpi-value">$48,200</div><div class="kpi-trend up" data-i18n="kpi_pipeline_sub">▲ 8% semana</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#fdf4ff">📊</div><div class="kpi-label" data-i18n="kpi_conv_rate">Tasa Conversión</div><div class="kpi-value">18.4%</div><div class="kpi-trend up">▲ 2.1 pts</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#fffbeb">💬</div><div class="kpi-label" data-i18n="kpi_wa_resp">Resp. WhatsApp</div><div class="kpi-value">94%</div><div class="kpi-trend up" data-i18n="kpi_excellent">▲ Excelente</div></div>
+          </div>
+          <div class="grid-4">
+            <div class="kpi"><div class="kpi-icon" style="background:#fef2f2">📢</div><div class="kpi-label" data-i18n="kpi_active_campaigns">Campañas Activas</div><div class="kpi-value">3</div><div class="kpi-trend">Meta + TikTok</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#eff6ff">⚡</div><div class="kpi-label" data-i18n="kpi_automations">Automatizaciones</div><div class="kpi-value">5</div><div class="kpi-trend up" data-i18n="kpi_automations_sub">▲ 2 activas hoy</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#f0fdf4">👥</div><div class="kpi-label" data-i18n="kpi_my_team">Mi Equipo</div><div class="kpi-value">12</div><div class="kpi-trend" data-i18n="kpi_my_team_sub">8 online ahora</div></div>
+            <div class="kpi"><div class="kpi-icon" style="background:#fdf4ff">🏆</div><div class="kpi-label" data-i18n="kpi_won_leads">Leads Ganados</div><div class="kpi-value">156</div><div class="kpi-trend up">▲ $72,800 valor</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><div class="card-title">📈 Leads por Día (últimos 7 días)</div></div>
+              <div class="card-body"><div class="chart-wrap"><canvas id="ch-leads"></canvas></div></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">🎯 Conversiones por Fuente</div></div>
+              <div class="card-body"><div class="chart-wrap"><canvas id="ch-source"></canvas></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title" data-i18n="card_recent_activity">📋 Actividad Reciente</div>
+              <button class="btn btn-outline" onclick="nav('crm')" data-i18n="btn_view_all_leads">Ver todos los leads →</button>
+            </div>
+            <table>
+              <thead><tr><th data-i18n="th_contact">Contacto</th><th data-i18n="th_status">Estado</th><th data-i18n="th_source">Fuente</th><th data-i18n="th_value">Valor</th><th data-i18n="th_assigned">Asignado</th><th data-i18n="th_time">Hora</th></tr></thead>
+              <tbody>
+                <tr><td><b>Ana López</b><br><span style="font-size:11px;color:var(--muted)">+57 300 123 4567</span></td><td><span class="badge b-new">Nuevo</span></td><td>Meta Ads</td><td style="color:var(--green);font-weight:700">$1,200</td><td>María G.</td><td style="color:var(--muted);font-size:11px">hace 3m</td></tr>
+                <tr><td><b>Carlos Ruiz</b><br><span style="font-size:11px;color:var(--muted)">carlos@gmail.com</span></td><td><span class="badge b-qualified">Calificado</span></td><td>TikTok</td><td style="color:var(--green);font-weight:700">$3,500</td><td>Carlos R.</td><td style="color:var(--muted);font-size:11px">hace 15m</td></tr>
+                <tr><td><b>Laura Sánchez</b><br><span style="font-size:11px;color:var(--muted)">+57 312 456 7890</span></td><td><span class="badge b-contacted">Contactado</span></td><td>WhatsApp</td><td style="color:var(--green);font-weight:700">$800</td><td>Sin asignar</td><td style="color:var(--muted);font-size:11px">hace 1h</td></tr>
+                <tr><td><b>Diego Torres</b><br><span style="font-size:11px;color:var(--muted)">diego@empresa.co</span></td><td><span class="badge b-won">Ganado</span></td><td>Meta Ads</td><td style="color:var(--green);font-weight:700">$5,000</td><td>Ana M.</td><td style="color:var(--muted);font-size:11px">hace 2h</td></tr>
+                <tr><td><b>Valentina Cruz</b><br><span style="font-size:11px;color:var(--muted)">+57 318 987 6543</span></td><td><span class="badge b-contacted">Contactado</span></td><td>TikTok</td><td style="color:var(--green);font-weight:700">$2,100</td><td>Carlos R.</td><td style="color:var(--muted);font-size:11px">hace 3h</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CRM -->
+        <div class="page" id="page-crm">
+          <div class="grid-4">
+            <div class="kpi" style="cursor:pointer" onclick="filterByStatus('NEW')"><div class="kpi-label">Nuevos</div><div class="kpi-value" style="color:#1d4ed8">234</div></div>
+            <div class="kpi" style="cursor:pointer" onclick="filterByStatus('QUALIFIED')"><div class="kpi-label">Calificados</div><div class="kpi-value" style="color:#7e22ce">89</div></div>
+            <div class="kpi" style="cursor:pointer" onclick="filterByStatus('WON')"><div class="kpi-label">Ganados</div><div class="kpi-value" style="color:var(--green)">156</div></div>
+            <div class="kpi" style="cursor:pointer" onclick="filterByStatus('LOST')"><div class="kpi-label">Perdidos</div><div class="kpi-value" style="color:var(--red)">34</div></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">👥 Leads / Contactos</div>
+              <div style="display:flex;gap:8px">
+                <input style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none;width:200px" placeholder="🔍 Buscar...">
+                <button class="btn btn-primary" onclick="toast('Lead creado ✅','ok')">+ Nuevo Lead</button>
+              </div>
+            </div>
+            <table>
+              <thead><tr><th>Contacto</th><th>Estado</th><th>Score</th><th>Valor</th><th>Fuente</th><th>Asignado</th><th>Acciones</th></tr></thead>
+              <tbody>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px">AL</div><div><b>Ana López</b><br><span style="font-size:11px;color:var(--muted)">+57 300 123 4567</span></div></div></td><td><span class="badge b-new">Nuevo</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:78%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">78</span></div></td><td style="color:var(--green);font-weight:700">$1,200</td><td>Meta Ads</td><td>María G.</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Contactando via WhatsApp...','ok')">WhatsApp</button></td></tr>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px">CR</div><div><b>Carlos Ruiz</b><br><span style="font-size:11px;color:var(--muted)">carlos@gmail.com</span></div></div></td><td><span class="badge b-qualified">Calificado</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:91%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">91</span></div></td><td style="color:var(--green);font-weight:700">$3,500</td><td>TikTok</td><td>Carlos R.</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Llamando a Carlos...','ok')">Llamar</button></td></tr>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:white;color:white;font-weight:700;font-size:12px;justify-content:center">DT</div><div><b>Diego Torres</b><br><span style="font-size:11px;color:var(--muted)">diego@empresa.co</span></div></div></td><td><span class="badge b-won">Ganado ✓</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:100%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">100</span></div></td><td style="color:var(--green);font-weight:700">$5,000</td><td>Meta Ads</td><td>Ana M.</td><td><span style="font-size:11px;color:var(--green);font-weight:600">✅ Cerrado</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PIPELINE -->
+        <div class="page" id="page-pipeline">
+          <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:16px;font-weight:700">Pipeline Kanban</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">847 leads · $48,200 en pipeline</div>
+            </div>
+            <button class="btn btn-primary" onclick="toast('Lead creado ✅','ok')">+ Nuevo Lead</button>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-col">
+              <div class="col-header" style="background:#eff6ff;color:#1d4ed8">Nuevos <span style="background:#dbeafe;padding:2px 8px;border-radius:10px">234</span></div>
+              <div class="col-body">
+                <div class="lead-card"><div class="lead-name">Ana López</div><div class="lead-meta">Meta Ads · hace 3m</div><div class="lead-value">$1,200</div></div>
+                <div class="lead-card"><div class="lead-name">Pedro Gómez</div><div class="lead-meta">TikTok · hace 1h</div><div class="lead-value">$900</div></div>
+                <div class="lead-card"><div class="lead-name">Sandra Ríos</div><div class="lead-meta">WhatsApp · hace 2h</div><div class="lead-value">$600</div></div>
+              </div>
+            </div>
+            <div class="pipeline-col">
+              <div class="col-header" style="background:#fefce8;color:#854d0e">Contactado <span style="background:#fef9c3;padding:2px 8px;border-radius:10px">189</span></div>
+              <div class="col-body">
+                <div class="lead-card"><div class="lead-name">Laura Sánchez</div><div class="lead-meta">Meta Ads · ayer</div><div class="lead-value">$800</div></div>
+                <div class="lead-card"><div class="lead-name">Valentina Cruz</div><div class="lead-meta">TikTok · hace 3h</div><div class="lead-value">$2,100</div></div>
+              </div>
+            </div>
+            <div class="pipeline-col">
+              <div class="col-header" style="background:#fdf4ff;color:#7e22ce">Calificado <span style="background:#f3e8ff;padding:2px 8px;border-radius:10px">89</span></div>
+              <div class="col-body">
+                <div class="lead-card"><div class="lead-name">Carlos Ruiz</div><div class="lead-meta">TikTok · hace 1d</div><div class="lead-value">$3,500</div></div>
+                <div class="lead-card"><div class="lead-name">María Fernández</div><div class="lead-meta">Meta Ads · hace 2d</div><div class="lead-value">$4,800</div></div>
+              </div>
+            </div>
+            <div class="pipeline-col">
+              <div class="col-header" style="background:#fff7ed;color:#9a3412">Propuesta <span style="background:#ffedd5;padding:2px 8px;border-radius:10px">45</span></div>
+              <div class="col-body">
+                <div class="lead-card"><div class="lead-name">Roberto Díaz</div><div class="lead-meta">WhatsApp · hace 3d</div><div class="lead-value">$7,200</div></div>
+              </div>
+            </div>
+            <div class="pipeline-col">
+              <div class="col-header" style="background:#f0fdf4;color:#166534">Ganado ✓ <span style="background:#dcfce7;padding:2px 8px;border-radius:10px">156</span></div>
+              <div class="col-body">
+                <div class="lead-card" style="border-color:#86efac"><div class="lead-name">Diego Torres</div><div class="lead-meta">Meta Ads · esta semana</div><div class="lead-value">$5,000</div></div>
+                <div class="lead-card" style="border-color:#86efac"><div class="lead-name">Adriana Mora</div><div class="lead-meta">TikTok · esta semana</div><div class="lead-value">$3,200</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CAMPAIGNS -->
+        <div class="page" id="page-campaigns">
+          <div class="grid-4">
+            <div class="kpi"><div class="kpi-label">Total Campañas</div><div class="kpi-value">3</div></div>
+            <div class="kpi"><div class="kpi-label">Gasto Total</div><div class="kpi-value">$5,430</div></div>
+            <div class="kpi"><div class="kpi-label">Leads Generados</div><div class="kpi-value">1,249</div></div>
+            <div class="kpi"><div class="kpi-label">ROAS Promedio</div><div class="kpi-value" style="color:var(--green)">4.2x</div></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">📢 Campañas Activas</div>
+              <button class="btn btn-primary" onclick="toast('Conecta Meta Ads en Configuración','info')">+ Nueva Campaña</button>
+            </div>
+            <table>
+              <thead><tr><th>Nombre</th><th>Plataforma</th><th>Estado</th><th>Gasto</th><th>Leads</th><th>CPC</th><th>CTR</th><th>ROAS</th><th>Acción</th></tr></thead>
+              <tbody>
+                <tr><td><b>Campaña Meta Verano</b></td><td><span class="badge b-meta">📘 Meta</span></td><td><span class="badge b-active">ACTIVA</span></td><td style="color:var(--green)">$1,250</td><td>234</td><td>$5.34</td><td>2.8%</td><td style="color:var(--green);font-weight:700">3.2x</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Campaña pausada','ok')">Pausar</button></td></tr>
+                <tr><td><b>TikTok Afiliados Q2</b></td><td><span class="badge b-tiktok">🎵 TikTok</span></td><td><span class="badge b-active">ACTIVA</span></td><td style="color:var(--green)">$3,400</td><td>892</td><td>$3.81</td><td>4.1%</td><td style="color:var(--green);font-weight:700">5.8x</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Campaña pausada','ok')">Pausar</button></td></tr>
+                <tr><td><b>Meta Leads Mayo</b></td><td><span class="badge b-meta">📘 Meta</span></td><td><span class="badge b-paused">PAUSADA</span></td><td style="color:var(--muted)">$780</td><td>123</td><td>$6.34</td><td>1.9%</td><td style="color:var(--yellow);font-weight:700">2.1x</td><td><button class="btn btn-primary" style="padding:4px 8px;font-size:11px" onclick="toast('Campaña activada ✅','ok')">Activar</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- WHATSAPP -->
+        <div class="page" id="page-whatsapp">
+          <div class="grid-4">
+            <div class="kpi"><div class="kpi-label">Conversaciones</div><div class="kpi-value">847</div><div class="kpi-trend up">▲ 23 nuevas hoy</div></div>
+            <div class="kpi"><div class="kpi-label">Mensajes Enviados</div><div class="kpi-value">12,847</div><div class="kpi-trend up">▲ 340 hoy</div></div>
+            <div class="kpi"><div class="kpi-label">Tasa Apertura</div><div class="kpi-value">94%</div><div class="kpi-trend up">▲ Excelente</div></div>
+            <div class="kpi"><div class="kpi-label">Bot Activo</div><div class="kpi-value" style="color:var(--green)">🟢 ON</div><div class="kpi-trend">Procesando 5 chats</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card" style="height:400px">
+              <div class="card-head"><div class="card-title">💬 Conversaciones Recientes</div></div>
+              <div>
+                ${['Ana López','Carlos Ruiz','Laura Sánchez','Pedro Gómez','Valentina Cruz'].map((name,i)=>`
+                <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;hover:background:#f8fafc" onclick="this.style.background='#f0f9ff'">
+                  <div style="width:38px;height:38px;border-radius:50%;background:hsl(${i*60},70%,50%);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0">${name[0]}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:600">${name}</div>
+                    <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hola, estoy interesado en el producto...</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--muted)">hace ${i+1}m</div>
+                  ${i<2?'<div style="width:8px;height:8px;background:var(--primary);border-radius:50%;flex-shrink:0"></div>':''}
+                </div>`).join('')}
+              </div>
+            </div>
+            <div class="card" style="height:400px;display:flex;flex-direction:column">
+              <div class="card-head"><div class="card-title">Chat: Ana López</div></div>
+              <div style="flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:flex-start"><div style="background:#f1f5f9;border-radius:12px 12px 12px 0;padding:10px 14px;max-width:70%;font-size:13px">Hola, vi su anuncio en TikTok y me interesa 😊</div></div>
+                <div style="display:flex;justify-content:flex-end"><div style="background:var(--primary);color:white;border-radius:12px 12px 0 12px;padding:10px 14px;max-width:70%;font-size:13px">¡Hola Ana! 👋 Gracias por contactarnos. Con gusto te cuento todo sobre nuestra oportunidad...</div></div>
+                <div style="display:flex;justify-content:flex-start"><div style="background:#f1f5f9;border-radius:12px 12px 12px 0;padding:10px 14px;max-width:70%;font-size:13px">¿Cuánto es la inversión inicial?</div></div>
+                <div style="font-size:10px;color:var(--muted);text-align:center">🤖 Bot respondiendo automáticamente</div>
+              </div>
+              <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px">
+                <input style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none" placeholder="Escribir mensaje..." id="wa-msg">
+                <button class="btn btn-primary" onclick="sendWA()">Enviar →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUTOMATION -->
+        <div class="page" id="page-automation">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">🤖 Flujos de Automatización</div>
+              <button class="btn btn-primary" onclick="toast('Constructor de flujos — próximamente','info')">+ Nuevo Flujo</button>
+            </div>
+            <table>
+              <thead><tr><th>Nombre</th><th>Trigger</th><th>Pasos</th><th>Ejecutado</th><th>Estado</th><th>Acción</th></tr></thead>
+              <tbody>
+                <tr><td><b>Bienvenida WhatsApp</b></td><td>Nuevo Lead</td><td>4 pasos</td><td>1,247x</td><td><span class="badge b-active">Activo</span></td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Flujo pausado','ok')">Pausar</button></td></tr>
+                <tr><td><b>Seguimiento 24h</b></td><td>Sin respuesta</td><td>3 pasos</td><td>893x</td><td><span class="badge b-active">Activo</span></td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px">Editar</button></td></tr>
+                <tr><td><b>Calificación de Lead</b></td><td>Mensaje recibido</td><td>6 pasos</td><td>2,341x</td><td><span class="badge b-active">Activo</span></td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px">Editar</button></td></tr>
+                <tr><td><b>Nurturing Semanal</b></td><td>Programado</td><td>5 pasos</td><td>456x</td><td><span class="badge b-paused">Pausado</span></td><td><button class="btn btn-primary" style="padding:4px 8px;font-size:11px" onclick="toast('Flujo activado ✅','ok')">Activar</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div class="page" id="page-analytics">
+          <div class="grid-4">
+            <div class="kpi"><div class="kpi-label">CPC Promedio</div><div class="kpi-value">$4.35</div><div class="kpi-trend up">▼ Bajando</div></div>
+            <div class="kpi"><div class="kpi-label">CTR Promedio</div><div class="kpi-value">3.4%</div><div class="kpi-trend up">▲ Subiendo</div></div>
+            <div class="kpi"><div class="kpi-label">CPL Promedio</div><div class="kpi-value">$8.20</div><div class="kpi-trend up">▼ Optimizado</div></div>
+            <div class="kpi"><div class="kpi-label">ROI Total</div><div class="kpi-value" style="color:var(--green)">340%</div><div class="kpi-trend up">▲ Excelente</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card"><div class="card-head"><div class="card-title">📊 Rendimiento por Plataforma</div></div><div class="card-body"><div class="chart-wrap"><canvas id="ch-platform"></canvas></div></div></div>
+            <div class="card"><div class="card-head"><div class="card-title">📈 Leads vs Conversiones</div></div><div class="card-body"><div class="chart-wrap"><canvas id="ch-conv"></canvas></div></div></div>
+          </div>
+        </div>
+
+        <!-- TEAM -->
+        <div class="page" id="page-team">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">👥 Mi Equipo</div>
+              <button class="btn btn-primary" onclick="toast('Invitación enviada ✅','ok')">+ Invitar</button>
+            </div>
+            <table>
+              <thead><tr><th>Miembro</th><th>Rol</th><th>Leads Asignados</th><th>Ganados</th><th>Tasa</th><th>Estado</th></tr></thead>
+              <tbody>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700">MG</div><div><b>María González</b><br><span style="font-size:11px;color:var(--muted)">Admin</span></div></div></td><td>Agency Admin</td><td style="font-weight:700">—</td><td>—</td><td>—</td><td><span class="badge b-active">Online</span></td></tr>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#a855f7;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700">AM</div><div><b>Ana Martínez</b><br><span style="font-size:11px;color:var(--muted)">Líder</span></div></div></td><td>MLM Leader</td><td style="font-weight:700">234</td><td style="color:var(--green)">42</td><td style="color:var(--green);font-weight:700">18%</td><td><span class="badge b-active">Online</span></td></tr>
+                <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700">CR</div><div><b>Carlos Rodríguez</b><br><span style="font-size:11px;color:var(--muted)">Afiliado</span></div></div></td><td>Afiliado</td><td style="font-weight:700">189</td><td style="color:var(--green)">31</td><td style="color:var(--yellow);font-weight:700">16%</td><td><span class="badge b-new">Ausente</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- content -->
+    </div><!-- main -->
+  </div><!-- layout -->
+</div><!-- app -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// i18n — BILINGUAL SUPPORT (ES / EN)
+// ═══════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  es: {
+    login_sub:'Inicia sesión en tu cuenta', login_error:'Credenciales incorrectas',
+    field_email:'Email', field_password:'Contraseña', btn_login:'Iniciar Sesión →',
+    demo_also:'También',
+    // Sidebar
+    nav_main:'Principal', nav_dashboard:'Dashboard', nav_campaigns:'Campañas',
+    nav_leads_crm:'Leads / CRM', nav_pipeline:'Pipeline Kanban',
+    nav_comms:'Comunicación', nav_whatsapp:'WhatsApp', nav_automation:'Automatización',
+    nav_reports:'Reportes', nav_analytics:'Analytics', nav_team:'Mi Equipo',
+    // Topbar
+    live_label:'En tiempo real', btn_new_lead:'+ Nuevo Lead',
+    // KPIs
+    kpi_total_leads:'Leads Totales', kpi_total_leads_sub:'▲ 12% este mes',
+    kpi_pipeline:'Valor Pipeline', kpi_pipeline_sub:'▲ 8% semana',
+    kpi_conv_rate:'Tasa Conversión', kpi_wa_resp:'Resp. WhatsApp',
+    kpi_excellent:'▲ Excelente', kpi_active_campaigns:'Campañas Activas',
+    kpi_automations:'Automatizaciones', kpi_automations_sub:'▲ 2 activas hoy',
+    kpi_my_team:'Mi Equipo', kpi_my_team_sub:'8 online ahora',
+    kpi_won_leads:'Leads Ganados',
+    // Cards
+    card_recent_activity:'📋 Actividad Reciente', btn_view_all_leads:'Ver todos los leads →',
+    // Table headers
+    th_contact:'Contacto', th_status:'Estado', th_source:'Fuente',
+    th_value:'Valor', th_assigned:'Asignado', th_time:'Hora',
+    th_campaign:'Campaña', th_platform:'Plataforma', th_spend:'Gasto',
+    th_actions:'Acciones', th_role:'Rol', th_member:'Miembro',
+    // Page configs
+    page_dashboard_title:'Dashboard', page_dashboard_sub:'Vista general de tu cuenta', page_dashboard_cta:'+ Nuevo Lead',
+    page_campaigns_title:'Campañas', page_campaigns_sub:'Meta Ads · TikTok Ads', page_campaigns_cta:'+ Nueva Campaña',
+    page_crm_title:'Leads / CRM', page_crm_sub:'Gestión de contactos y leads', page_crm_cta:'+ Nuevo Lead',
+    page_pipeline_title:'Pipeline Kanban', page_pipeline_sub:'Visualiza el flujo de ventas', page_pipeline_cta:'+ Nuevo Lead',
+    page_whatsapp_title:'WhatsApp Business', page_whatsapp_sub:'Conversaciones activas', page_whatsapp_cta:'Nueva Conversación',
+    page_automation_title:'Automatizaciones', page_automation_sub:'Flujos y secuencias activas', page_automation_cta:'+ Nueva Automatización',
+    page_analytics_title:'Analytics', page_analytics_sub:'Métricas y rendimiento', page_analytics_cta:'Exportar CSV',
+    page_team_title:'Mi Equipo', page_team_sub:'Gestión de miembros y roles', page_team_cta:'+ Invitar Miembro',
+    // Toasts / alerts
+    toast_welcome:'¡Bienvenido ', toast_login_error:'Credenciales incorrectas',
+    toast_whatsapp:'Contactando via WhatsApp...', toast_call:'Llamando...',
+    toast_lead_created:'Lead creado ✅',
+  },
+  en: {
+    login_sub:'Sign in to your account', login_error:'Invalid credentials',
+    field_email:'Email', field_password:'Password', btn_login:'Sign In →',
+    demo_also:'Also',
+    // Sidebar
+    nav_main:'Main', nav_dashboard:'Dashboard', nav_campaigns:'Campaigns',
+    nav_leads_crm:'Leads / CRM', nav_pipeline:'Pipeline Kanban',
+    nav_comms:'Communication', nav_whatsapp:'WhatsApp', nav_automation:'Automation',
+    nav_reports:'Reports', nav_analytics:'Analytics', nav_team:'My Team',
+    // Topbar
+    live_label:'Real time', btn_new_lead:'+ New Lead',
+    // KPIs
+    kpi_total_leads:'Total Leads', kpi_total_leads_sub:'▲ 12% this month',
+    kpi_pipeline:'Pipeline Value', kpi_pipeline_sub:'▲ 8% this week',
+    kpi_conv_rate:'Conversion Rate', kpi_wa_resp:'WhatsApp Response',
+    kpi_excellent:'▲ Excellent', kpi_active_campaigns:'Active Campaigns',
+    kpi_automations:'Automations', kpi_automations_sub:'▲ 2 active today',
+    kpi_my_team:'My Team', kpi_my_team_sub:'8 online now',
+    kpi_won_leads:'Won Leads',
+    // Cards
+    card_recent_activity:'📋 Recent Activity', btn_view_all_leads:'View all leads →',
+    // Table headers
+    th_contact:'Contact', th_status:'Status', th_source:'Source',
+    th_value:'Value', th_assigned:'Assigned', th_time:'Time',
+    th_campaign:'Campaign', th_platform:'Platform', th_spend:'Spend',
+    th_actions:'Actions', th_role:'Role', th_member:'Member',
+    // Page configs
+    page_dashboard_title:'Dashboard', page_dashboard_sub:'Your account overview', page_dashboard_cta:'+ New Lead',
+    page_campaigns_title:'Campaigns', page_campaigns_sub:'Meta Ads · TikTok Ads', page_campaigns_cta:'+ New Campaign',
+    page_crm_title:'Leads / CRM', page_crm_sub:'Contact & lead management', page_crm_cta:'+ New Lead',
+    page_pipeline_title:'Pipeline Kanban', page_pipeline_sub:'Visualize your sales flow', page_pipeline_cta:'+ New Lead',
+    page_whatsapp_title:'WhatsApp Business', page_whatsapp_sub:'Active conversations', page_whatsapp_cta:'New Conversation',
+    page_automation_title:'Automations', page_automation_sub:'Active flows & sequences', page_automation_cta:'+ New Automation',
+    page_analytics_title:'Analytics', page_analytics_sub:'Metrics & performance', page_analytics_cta:'Export CSV',
+    page_team_title:'My Team', page_team_sub:'Member & role management', page_team_cta:'+ Invite Member',
+    // Toasts
+    toast_welcome:'Welcome ', toast_login_error:'Invalid credentials',
+    toast_whatsapp:'Contacting via WhatsApp...', toast_call:'Calling...',
+    toast_lead_created:'Lead created ✅',
+  }
+};
+
+let currentLang = localStorage.getItem('mlm_lang') || 'es';
+
+function t(key) {
+  return TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('mlm_lang', lang);
+  ['es','en'].forEach(l => {
+    const b1 = document.getElementById('lang-'+l);
+    const b2 = document.getElementById('lang-'+l+'-login');
+    if(b1) b1.classList.toggle('active', l===lang);
+    if(b2) b2.classList.toggle('active', l===lang);
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t(el.getAttribute('data-i18n'));
+    if(v) el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const v = t(el.getAttribute('data-i18n-placeholder'));
+    if(v) el.placeholder = v;
+  });
+  // Refresh active page topbar
+  if(typeof pageConf !== 'undefined') {
+    const activePage = document.querySelector('.page.active')?.id?.replace('page-','');
+    if(activePage && pageConf[activePage]) {
+      const cfg = pageConf[activePage];
+      const t1 = document.getElementById('topbar-title');
+      const t2 = document.getElementById('topbar-sub');
+      const t3 = document.getElementById('topbar-cta');
+      if(t1) t1.textContent = t(cfg.titleKey) || cfg.title;
+      if(t2) t2.textContent = t(cfg.subKey) || cfg.sub;
+      if(t3) t3.textContent = t(cfg.ctaKey) || cfg.cta;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+const API = (window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
+  ? 'http://localhost:4000/api/v1' : '/api/v1';
+let token = localStorage.getItem('mlm_token');
+let charts = {};
+
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    token = data.accessToken;
+    localStorage.setItem('mlm_token', token);
+    initApp(data);
+  } catch {
+    // Demo mode sin servidor
+    const demoUsers = {
+      'admin@mlmsaas.com': { firstName: 'Admin', lastName: 'Demo', role: 'AGENCY_ADMIN' },
+      'lider@mlmsaas.com': { firstName: 'María', lastName: 'González', role: 'MLM_LEADER' },
+      'afiliado@mlmsaas.com': { firstName: 'Carlos', lastName: 'Rodríguez', role: 'AFFILIATE' },
+      'super@mlmsaas.com': { firstName: 'Super', lastName: 'Admin', role: 'SUPER_ADMIN' },
+    };
+    const user = demoUsers[email];
+    if (user && password === 'Admin123!') {
+      initApp({ user, tenant: { name: 'Demo Agency MLM', plan: 'PRO' }, accessToken: 'demo_token' });
+    } else {
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+function initApp(data) {
+  const { user, tenant } = data;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-name').textContent = `${user.firstName} ${user.lastName}`;
+  document.getElementById('user-role').textContent = user.role.replace('_',' ');
+  document.getElementById('user-avatar').textContent = `${user.firstName[0]}${user.lastName[0]}`;
+  document.getElementById('tenant-name').textContent = tenant?.name || 'MLM SaaS';
+  document.getElementById('tenant-plan').textContent = 'Plan ' + (tenant?.plan || 'PRO');
+  setTimeout(initCharts, 300);
+}
+
+function logout() {
+  localStorage.removeItem('mlm_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function sendWA() {
+  const msg = document.getElementById('wa-msg');
+  if (msg.value.trim()) { toast('Mensaje enviado ✅','ok'); msg.value = ''; }
+}
+
+function filterByStatus(s) { nav('crm'); toast('Filtrando por: ' + s,'info'); }
+
+const pages = {
+  dashboard:  { titleKey:'page_dashboard_title',  subKey:'page_dashboard_sub',  ctaKey:'page_dashboard_cta'  },
+  campaigns:  { titleKey:'page_campaigns_title',  subKey:'page_campaigns_sub',  ctaKey:'page_campaigns_cta'  },
+  crm:        { titleKey:'page_crm_title',        subKey:'page_crm_sub',        ctaKey:'page_crm_cta'        },
+  pipeline:   { titleKey:'page_pipeline_title',   subKey:'page_pipeline_sub',   ctaKey:'page_pipeline_cta'   },
+  whatsapp:   { titleKey:'page_whatsapp_title',   subKey:'page_whatsapp_sub',   ctaKey:'page_whatsapp_cta'   },
+  automation: { titleKey:'page_automation_title', subKey:'page_automation_sub', ctaKey:'page_automation_cta' },
+  analytics:  { titleKey:'page_analytics_title',  subKey:'page_analytics_sub',  ctaKey:'page_analytics_cta'  },
+  team:       { titleKey:'page_team_title',       subKey:'page_team_sub',       ctaKey:'page_team_cta'       },
+};
+const pageConf = pages; // alias for setLang()
+
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if(el) el.classList.add('active');
+  const ni = document.querySelector(`.nav-item[onclick="nav('${page}')"]`);
+  if(ni) ni.classList.add('active');
+  const cfg = pages[page] || {};
+  document.getElementById('topbar-title').textContent = t(cfg.titleKey) || page;
+  document.getElementById('topbar-sub').textContent = t(cfg.subKey) || '';
+  document.getElementById('topbar-cta').textContent = t(cfg.ctaKey) || '';
+  if(page==='analytics') setTimeout(initAnalyticsCharts,100);
+}
+
+function topbarCta() { toast('Función disponible con servidor activo','info'); }
+
+function initCharts() {
+  mkChart('ch-leads','bar',['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],[145,223,189,312,287,167,98],'Leads','#6366f1');
+  mkPie('ch-source',['Meta Ads','TikTok','WhatsApp','Referidos'],[54,28,12,6],['#3b82f6','#a855f7','#22c55e','#f59e0b']);
+}
+function initAnalyticsCharts() {
+  mkChart('ch-platform','bar',['Meta Ads','TikTok','WhatsApp','Google'],[234,892,123,45],'Leads','#6366f1');
+  mkChart('ch-conv','line',['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],[23,41,31,58,52,34,19],'Conversiones','#22c55e');
+}
+
+function mkChart(id,type,labels,data,label,color) {
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type, data: { labels, datasets:[{ label, data, borderColor:color, backgroundColor:type==='line'?color+'22':color+'cc', fill:type==='line', tension:0.4, borderWidth:2, borderRadius:type==='bar'?6:0, pointBackgroundColor:color, pointRadius:4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'rgba(0,0,0,.04)',drawBorder:false},ticks:{color:'#94a3b8',font:{size:11}}},y:{grid:{color:'rgba(0,0,0,.04)',drawBorder:false},ticks:{color:'#94a3b8',font:{size:11}}}} }
+  });
+}
+function mkPie(id,labels,data,colors) {
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type:'doughnut', data:{ labels, datasets:[{ data, backgroundColor:colors, borderColor:'white', borderWidth:3 }] },
+    options:{ responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:11},padding:12}}} }
+  });
+}
+
+function toast(msg,type='ok') {
+  const el = document.createElement('div');
+  el.className = `toast-item t-${type}`;
+  el.innerHTML = `<span>${{ok:'✅',err:'❌',info:'ℹ️'}[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+document.getElementById('password').addEventListener('keydown',e=>{ if(e.key==='Enter') login(); });
+
+// Apply saved language on load
+setLang(currentLang);
+</script>
+</body>
+</html>

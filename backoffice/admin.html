@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLM SaaS — Super Admin Backoffice</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════ RESET & VARS ═══════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--surface3:#2d3147;
+  --border:#2f3450;--text:#e8eaf0;--muted:#7b82a0;
+  --primary:#6366f1;--primary-light:#818cf8;--primary-dark:#4f46e5;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--cyan:#06b6d4;--pink:#ec4899;
+  --sidebar-w:220px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px}
+
+/* ═══════════════════════════════ SIDEBAR ════════════════════ */
+#sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sb-logo{padding:20px 16px 12px;border-bottom:1px solid var(--border)}
+.sb-logo-inner{display:flex;align-items:center;gap:10px}
+.sb-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:white;flex-shrink:0}
+.sb-logo-text{font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.sb-logo-sub{font-size:10px;color:var(--primary-light);font-weight:500;margin-top:1px}
+.sb-nav{padding:12px 8px;flex:1;overflow-y:auto}
+.sb-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:8px 10px 4px;margin-top:8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;text-decoration:none}
+.sb-item:hover{background:var(--surface2);color:var(--text)}
+.sb-item.active{background:rgba(99,102,241,.15);color:var(--primary-light);border:1px solid rgba(99,102,241,.2)}
+.sb-item svg{width:16px;height:16px;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px}
+.sb-footer{padding:12px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:8px}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0}
+.sb-user-name{font-size:12px;font-weight:600;color:var(--text)}
+.sb-user-role{font-size:10px;color:var(--primary-light)}
+
+/* ═══════════════════════════════ MAIN ════════════════════════ */
+#main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.page-title{font-size:16px;font-weight:700;color:var(--text)}
+.page-subtitle{font-size:12px;color:var(--muted);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-success{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--green);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══════════════════════════════ CONTENT ════════════════════ */
+.page-content{padding:24px;flex:1}
+.page{display:none}
+.page.active{display:block}
+
+/* ═══════════════════════════════ CARDS ═════════════════════ */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.blue::before{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.stat-card.green::before{background:linear-gradient(90deg,#22c55e,#86efac)}
+.stat-card.yellow::before{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.stat-card.red::before{background:linear-gradient(90deg,#ef4444,#fca5a5)}
+.stat-card.cyan::before{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
+.stat-card.pink::before{background:linear-gradient(90deg,#ec4899,#f9a8d4)}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-size:28px;font-weight:800;color:var(--text);margin:6px 0 4px;line-height:1}
+.stat-change{font-size:11px;display:flex;align-items:center;gap:3px}
+.stat-change.up{color:var(--green)}
+.stat-change.down{color:var(--red)}
+.stat-icon{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+
+/* ═══════════════════════════════ TABLES ════════════════════ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:700;color:var(--text)}
+.card-subtitle{font-size:11px;color:var(--muted);margin-top:2px}
+.card-body{padding:20px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)}
+td{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ═══════════════════════════════ BADGES ════════════════════ */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
+.badge.active{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.trial{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.badge.suspended{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.badge.starter{background:rgba(107,114,128,.12);color:#9ca3af;border:1px solid rgba(107,114,128,.2)}
+.badge.pro{background:rgba(99,102,241,.12);color:var(--primary-light);border:1px solid rgba(99,102,241,.2)}
+.badge.business{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2)}
+.badge.enterprise{background:rgba(6,182,212,.12);color:var(--cyan);border:1px solid rgba(6,182,212,.2)}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ═══════════════════════════════ INPUTS ════════════════════ */
+.input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;width:100%;outline:none;transition:.15s}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.input::placeholder{color:var(--muted)}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);width:14px;height:14px}
+.search-wrap .input{padding-left:32px;width:280px}
+.select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:12px;outline:none;cursor:pointer}
+.select:focus{border-color:var(--primary)}
+
+/* ═══════════════════════════════ AVATAR ════════════════════ */
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0}
+.tenant-row{display:flex;align-items:center;gap:10px}
+.tenant-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:13px;flex-shrink:0}
+
+/* ═══════════════════════════════ MODAL ═════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:20px;line-height:1}
+.modal-body{padding:24px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* ═══════════════════════════════ CHARTS ════════════════════ */
+.chart-container{position:relative;height:220px}
+
+/* ═══════════════════════════════ PROGRESS ══════════════════ */
+.progress-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+/* ═══════════════════════════════ SYSTEM HEALTH ═════════════ */
+.health-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.health-item:last-child{border-bottom:none}
+.health-label{font-size:13px;color:var(--text)}
+.health-value{font-size:13px;font-weight:600}
+.health-ok{color:var(--green)}
+.health-warn{color:var(--yellow)}
+.health-error{color:var(--red)}
+
+/* ═══════════════════════════════ TOAST ═════════════════════ */
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;animation:slideIn .2s ease;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-success{border-left:3px solid var(--green)}
+.toast-error{border-left:3px solid var(--red)}
+.toast-info{border-left:3px solid var(--primary)}
+
+/* ═══════════════════════════════ LOGIN ═════════════════════ */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--bg);position:fixed;inset:0;z-index:200}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:380px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo-icon{width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;color:white;margin:0 auto 12px}
+.login-title{font-size:20px;font-weight:800;color:var(--text)}
+.login-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.login-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
+.login-btn{width:100%;background:var(--primary);color:white;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;margin-top:4px}
+.login-btn:hover{background:var(--primary-dark)}
+.login-btn:disabled{opacity:.5;cursor:default}
+.demo-creds{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;margin-top:16px;font-size:11px;color:var(--muted);text-align:center;line-height:1.8}
+.demo-creds strong{color:var(--primary-light)}
+
+/* ═══════════════════════════════ LANG TOGGLE ═══════════════ */
+.lang-toggle{display:flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px;font-size:11px;font-weight:700}
+.lang-btn{padding:3px 10px;border-radius:16px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:.15s;font-size:11px;font-weight:700}
+.lang-btn.active{background:var(--primary);color:white}
+.lang-toggle-login{position:absolute;top:16px;right:16px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ═══════════════════════════════ MISC ══════════════════════ */
+.text-green{color:var(--green)}
+.text-red{color:var(--red)}
+.text-muted{color:var(--muted)}
+.text-yellow{color:var(--yellow)}
+.flex{display:flex}
+.items-center{align-items:center}
+.gap-2{gap:8px}
+.gap-3{gap:12px}
+.ml-auto{margin-left:auto}
+.font-mono{font-family:monospace;font-size:12px}
+.action-btn{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;transition:.15s}
+.action-btn:hover{background:var(--surface2);color:var(--text)}
+.action-btn.red:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.3)}
+.action-btn.green:hover{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.3)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ LOGIN ══════════════════════════════ -->
+<div id="login-screen">
+  <div class="lang-toggle lang-toggle-login">
+    <button class="lang-btn active" onclick="setLang('es')" id="lang-es-login">ES</button>
+    <button class="lang-btn" onclick="setLang('en')" id="lang-en-login">EN</button>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">⚡</div>
+      <div class="login-title">MLM SaaS Backoffice</div>
+      <div class="login-sub" data-i18n="login_sub">Super Admin Panel</div>
+    </div>
+    <div class="login-error" id="login-error" data-i18n="login_error">Credenciales incorrectas</div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="field_email">Email</label>
+      <input class="input" type="email" id="l-email" placeholder="super@mlmsaas.com" value="super@mlmsaas.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="field_password">Contraseña</label>
+      <input class="input" type="password" id="l-password" placeholder="••••••••" value="Admin123!">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()" data-i18n="btn_login">Iniciar Sesión →</button>
+    <div class="demo-creds">
+      <strong>Demo:</strong> super@mlmsaas.com / Admin123!<br>
+      <span data-i18n="demo_also">También</span>: admin@mlmsaas.com / Admin123!
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP SHELL ══════════════════════════ -->
+<div id="app-shell" style="display:none;width:100%;display:none">
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-inner">
+      <div class="sb-logo-icon">⚡</div>
+      <div>
+        <div class="sb-logo-text">MLM SaaS</div>
+        <div class="sb-logo-sub">Super Admin</div>
+      </div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section" data-i18n="nav_main">Principal</div>
+    <a class="sb-item active" onclick="nav('dashboard')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span data-i18n="nav_dashboard">Dashboard</span>
+    </a>
+    <a class="sb-item" onclick="nav('analytics')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span data-i18n="nav_analytics">Analytics</span>
+    </a>
+    <div class="sb-section" data-i18n="nav_manage">Gestión</div>
+    <a class="sb-item" onclick="nav('tenants')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span data-i18n="nav_tenants">Tenants / Cuentas</span>
+      <span class="sb-badge" id="sb-tenants-count">6</span>
+    </a>
+    <a class="sb-item" onclick="nav('users')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span data-i18n="nav_users">Usuarios</span>
+    </a>
+    <a class="sb-item" onclick="nav('campaigns')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span data-i18n="nav_campaigns">Campañas</span>
+    </a>
+    <div class="sb-section" data-i18n="nav_business">Negocio</div>
+    <a class="sb-item" onclick="nav('billing')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <span data-i18n="nav_billing">Billing / MRR</span>
+    </a>
+    <a class="sb-item" onclick="nav('system')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span data-i18n="nav_system">Sistema</span>
+    </a>
+    <a class="sb-item" onclick="nav('activity')" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span data-i18n="nav_activity">Actividad</span>
+    </a>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">SA</div>
+      <div>
+        <div class="sb-user-name" id="sb-name">Super Admin</div>
+        <div class="sb-user-role">⚡ Super Admin</div>
+      </div>
+      <button style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px" title="Cerrar sesión" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div>
+        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-subtitle" id="topbar-sub">Vista general de la plataforma</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><span class="live-dot"></span><span data-i18n="live_label">En tiempo real</span></div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('es')" id="lang-es">ES</button>
+        <button class="lang-btn" onclick="setLang('en')" id="lang-en">EN</button>
+      </div>
+      <button class="btn btn-primary" id="topbar-action" onclick="topbarAction()" data-i18n="btn_new_tenant">+ Nuevo Tenant</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="grid-4">
+        <div class="stat-card blue">
+          <div class="stat-icon" style="background:rgba(99,102,241,.1)">🏢</div>
+          <div class="stat-label" data-i18n="kpi_tenants">Tenants Activos</div>
+          <div class="stat-value" id="kpi-tenants">0</div>
+          <div class="stat-change up" data-i18n="kpi_tenants_sub">▲ 2 este mes</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(34,197,94,.1)">💰</div>
+          <div class="stat-label" data-i18n="kpi_mrr">MRR Total</div>
+          <div class="stat-value" id="kpi-mrr">$0</div>
+          <div class="stat-change up" data-i18n="kpi_mrr_sub">▲ 18% vs mes ant.</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon" style="background:rgba(245,158,11,.1)">👥</div>
+          <div class="stat-label" data-i18n="kpi_users">Usuarios Totales</div>
+          <div class="stat-value" id="kpi-users">0</div>
+          <div class="stat-change up" data-i18n="kpi_users_sub">▲ 34 nuevos</div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-icon" style="background:rgba(6,182,212,.1)">🎯</div>
+          <div class="stat-label" data-i18n="kpi_leads">Leads en Sistema</div>
+          <div class="stat-value" id="kpi-leads">0</div>
+          <div class="stat-change up" data-i18n="kpi_leads_sub">▲ 12% hoy</div>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-card pink">
+          <div class="stat-icon" style="background:rgba(236,72,153,.1)">📈</div>
+          <div class="stat-label" data-i18n="kpi_arr">ARR Proyectado</div>
+          <div class="stat-value" id="kpi-arr">$0</div>
+          <div class="stat-change up" data-i18n="kpi_arr_sub">▲ 18% crecimiento</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon" style="background:rgba(99,102,241,.1)">🚀</div>
+          <div class="stat-label" data-i18n="kpi_campaigns">Campañas Activas</div>
+          <div class="stat-value" id="kpi-campaigns">0</div>
+          <div class="stat-change up">▲ Meta + TikTok</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon" style="background:rgba(245,158,11,.1)">⏳</div>
+          <div class="stat-label" data-i18n="kpi_trial">En Trial</div>
+          <div class="stat-value" id="kpi-trial">0</div>
+          <div class="stat-change" style="color:var(--yellow)" data-i18n="kpi_trial_sub">→ conversión 72%</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon" style="background:rgba(239,68,68,.1)">⚠️</div>
+          <div class="stat-label" data-i18n="kpi_suspended">Suspendidos</div>
+          <div class="stat-value" id="kpi-suspended">0</div>
+          <div class="stat-change down" data-i18n="kpi_suspended_sub">▼ requieren acción</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" data-i18n="chart_mrr_title">📈 Crecimiento MRR</div>
+              <div class="card-subtitle" data-i18n="chart_mrr_sub">Últimos 6 meses</div>
+            </div>
+          </div>
+          <div class="card-body"><div class="chart-container"><canvas id="chartMRR"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" data-i18n="chart_leads_title">🎯 Leads por Día</div>
+              <div class="card-subtitle" data-i18n="chart_leads_sub">Última semana</div>
+            </div>
+          </div>
+          <div class="card-body"><div class="chart-container"><canvas id="chartLeads"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="card_top_tenants">🏢 Top Tenants por Leads</div>
+          </div>
+          <div id="top-tenants-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Distribución de Planes</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" style="height:180px"><canvas id="chartPlans"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ANALYTICS ══════════ -->
+    <div class="page" id="page-analytics">
+      <div class="grid-3">
+        <div class="stat-card green">
+          <div class="stat-label">Ingresos Totales (YTD)</div>
+          <div class="stat-value">$24,800</div>
+          <div class="stat-change up">▲ 34% vs año anterior</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Churn Rate</div>
+          <div class="stat-value">2.4%</div>
+          <div class="stat-change up">▼ Bajando — excelente</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">LTV Promedio</div>
+          <div class="stat-value">$4,200</div>
+          <div class="stat-change up">▲ 8% este trimestre</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">💰 Revenue por Mes</div></div>
+          <div class="card-body"><div class="chart-container"><canvas id="chartRevenue"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🌍 Leads por Plataforma</div></div>
+          <div class="card-body"><div class="chart-container"><canvas id="chartPlatform"></canvas></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📊 Métricas de Campañas Globales</div></div>
+        <table>
+          <thead><tr><th>Tenant</th><th>Plataforma</th><th>Inversión</th><th>Leads</th><th>Conversiones</th><th>CPC</th><th>CTR</th><th>ROAS</th></tr></thead>
+          <tbody id="analytics-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ TENANTS ══════════ -->
+    <div class="page" id="page-tenants">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" data-i18n="card_tenants_title">🏢 Todas las Cuentas / Tenants</div>
+            <div class="card-subtitle" id="tenants-count-label" data-i18n="loading">Cargando...</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select class="select" id="tenant-filter" onchange="filterTenants()">
+              <option value="" data-i18n="filter_all_status">Todos los estados</option>
+              <option value="active" data-i18n="status_active">Activos</option>
+              <option value="trial">Trial</option>
+              <option value="suspended" data-i18n="status_suspended">Suspendidos</option>
+            </select>
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="input" type="text" id="tenant-search" data-i18n-placeholder="ph_search_tenant" placeholder="Buscar tenant..." oninput="filterTenants()">
+            </div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="th_company">Empresa</th><th>Plan</th><th data-i18n="th_status">Estado</th><th data-i18n="th_users">Usuarios</th><th>Leads</th><th>MRR</th><th data-i18n="th_created">Creado</th><th data-i18n="th_actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tenants-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ USERS ══════════ -->
+    <div class="page" id="page-users">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">👥 Gestión Global de Usuarios</div>
+            <div class="card-subtitle" id="users-count-label">Cargando...</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select class="select" id="user-role-filter" onchange="filterUsers()">
+              <option value="">Todos los roles</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+              <option value="AGENCY_ADMIN">Agency Admin</option>
+              <option value="MLM_LEADER">Líder MLM</option>
+              <option value="AFFILIATE">Afiliado</option>
+            </select>
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="input" type="text" id="user-search" placeholder="Buscar usuario..." oninput="filterUsers()">
+            </div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th data-i18n="th_user">Usuario</th><th>Tenant</th><th data-i18n="th_role">Rol</th><th data-i18n="th_status">Estado</th><th data-i18n="th_created">Creado</th><th data-i18n="th_actions">Acciones</th></tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ CAMPAIGNS ══════════ -->
+    <div class="page" id="page-campaigns">
+      <div class="grid-4">
+        <div class="stat-card blue"><div class="stat-label">Total Campañas</div><div class="stat-value" id="c-total">3</div></div>
+        <div class="stat-card green"><div class="stat-label">Activas</div><div class="stat-value" id="c-active">2</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Gasto Total</div><div class="stat-value" id="c-spend">$0</div></div>
+        <div class="stat-card cyan"><div class="stat-label">Leads Generados</div><div class="stat-value" id="c-leads">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📢 Campañas Publicitarias</div></div>
+        <table>
+          <thead><tr><th data-i18n="th_campaign">Campaña</th><th>Tenant</th><th data-i18n="th_platform">Plataforma</th><th data-i18n="th_status">Estado</th><th data-i18n="th_spend">Gasto</th><th>Leads</th><th>CPC</th><th>CTR</th><th>ROAS</th></tr></thead>
+          <tbody id="campaigns-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ BILLING ══════════ -->
+    <div class="page" id="page-billing">
+      <div class="grid-3">
+        <div class="stat-card green">
+          <div class="stat-label">MRR Actual</div>
+          <div class="stat-value" id="billing-mrr">$0</div>
+          <div class="stat-change up">▲ 18% crecimiento</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">ARR Proyectado</div>
+          <div class="stat-value" id="billing-arr">$0</div>
+          <div class="stat-change up">Basado en MRR actual</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Cuentas Activas</div>
+          <div class="stat-value" id="billing-active">0</div>
+          <div class="stat-change up">▲ pagando</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">💳 Distribución de Planes</div></div>
+          <div id="plans-billing-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📈 MRR por Mes</div></div>
+          <div class="card-body"><div class="chart-container"><canvas id="chartBillingMRR"></canvas></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">🏢 Cuentas por Plan</div></div>
+        <table>
+          <thead><tr><th>Empresa</th><th>Plan</th><th>Estado</th><th>MRR</th><th>Próximo cobro</th><th>Acción</th></tr></thead>
+          <tbody id="billing-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ SYSTEM ══════════ -->
+    <div class="page" id="page-system">
+      <div class="grid-3">
+        <div class="stat-card green"><div class="stat-label">Estado API</div><div class="stat-value">🟢 Online</div><div class="stat-change up">Uptime 99.98%</div></div>
+        <div class="stat-card blue"><div class="stat-label">Latencia Promedio</div><div class="stat-value" id="sys-latency">42ms</div><div class="stat-change up">▼ Excelente</div></div>
+        <div class="stat-card yellow"><div class="stat-label">DB Connections</div><div class="stat-value">12/100</div><div class="stat-change up">▲ Uso normal</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🖥️ Salud del Sistema</div></div>
+          <div class="card-body">
+            <div class="health-item"><span class="health-label">PostgreSQL</span><span class="health-ok health-value">✅ Conectado</span></div>
+            <div class="health-item"><span class="health-label">Redis</span><span class="health-ok health-value">✅ Online</span></div>
+            <div class="health-item"><span class="health-label">MongoDB</span><span class="health-ok health-value">✅ Online</span></div>
+            <div class="health-item"><span class="health-label">WhatsApp API</span><span class="health-ok health-value">✅ Conectado</span></div>
+            <div class="health-item"><span class="health-label">Meta Ads API</span><span class="health-ok health-value">✅ Activo</span></div>
+            <div class="health-item"><span class="health-label">TikTok Ads API</span><span class="health-warn health-value">⚠️ Rate limit</span></div>
+            <div class="health-item"><span class="health-label">OpenAI API</span><span class="health-ok health-value">✅ GPT-4o ready</span></div>
+            <div class="health-item"><span class="health-label">Stripe</span><span class="health-ok health-value">✅ Payments OK</span></div>
+            <div class="health-item"><span class="health-label">SendGrid</span><span class="health-ok health-value">✅ Email OK</span></div>
+            <div class="health-item"><span class="health-label">CloudFlare CDN</span><span class="health-ok health-value">✅ Online</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Uso de Recursos</div></div>
+          <div class="card-body">
+            <div style="margin-bottom:16px">
+              <div class="flex items-center" style="justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--muted)">CPU</span>
+                <span style="font-size:12px;font-weight:600" id="cpu-val">24%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:24%;background:var(--green)"></div></div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div class="flex items-center" style="justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--muted)">Memoria RAM</span>
+                <span style="font-size:12px;font-weight:600">62%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:62%;background:var(--yellow)"></div></div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div class="flex items-center" style="justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--muted)">Disco</span>
+                <span style="font-size:12px;font-weight:600">38%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:38%;background:var(--primary)"></div></div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div class="flex items-center" style="justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--muted)">Redis Memory</span>
+                <span style="font-size:12px;font-weight:600">18%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:18%;background:var(--cyan)"></div></div>
+            </div>
+            <div>
+              <div class="flex items-center" style="justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--muted)">Bull Queue (jobs)</span>
+                <span style="font-size:12px;font-weight:600">7 pending</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:7%;background:var(--pink)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ACTIVITY ══════════ -->
+    <div class="page" id="page-activity">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🕐 Log de Actividad del Sistema</div></div>
+        <div class="card-body">
+          <div id="activity-log" style="font-family:monospace;font-size:12px;line-height:2"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end page-content -->
+</div><!-- end #main -->
+</div><!-- end #app-shell -->
+
+<!-- ══════════ MODAL NUEVO TENANT ══════════ -->
+<div class="modal-overlay" id="modal-tenant">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="modal_tenant_title">🏢 Crear Nuevo Tenant</div>
+      <button class="modal-close" onclick="closeModal('modal-tenant')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_company_name">Nombre de la Empresa</label>
+        <input class="input" id="t-name" data-i18n-placeholder="ph_company_name" placeholder="Ej: Equipo MLM Pro">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_slug">Slug (URL única)</label>
+        <input class="input" id="t-slug" placeholder="equipo-mlm-pro">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_plan">Plan</label>
+        <select class="select" id="t-plan" style="width:100%">
+          <option value="STARTER" data-i18n="plan_starter">Starter — Gratis/Trial</option>
+          <option value="PRO" selected data-i18n="plan_pro">Pro — $299/mes</option>
+          <option value="BUSINESS" data-i18n="plan_business">Business — $599/mes</option>
+          <option value="ENTERPRISE" data-i18n="plan_enterprise">Enterprise — Personalizado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_admin_email">Email del Admin</label>
+        <input class="input" id="t-email" type="email" data-i18n-placeholder="ph_admin_email" placeholder="admin@empresa.com">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-tenant')" data-i18n="btn_cancel">Cancelar</button>
+      <button class="btn btn-primary" onclick="createTenant()" data-i18n="btn_create_tenant">Crear Tenant →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// i18n — BILINGUAL SUPPORT (ES / EN)
+// ════════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  es: {
+    // Login
+    login_sub:'Super Admin Panel', login_error:'Credenciales incorrectas',
+    field_email:'Email', field_password:'Contraseña', btn_login:'Iniciar Sesión →',
+    demo_also:'También',
+    // Sidebar
+    nav_main:'Principal', nav_dashboard:'Dashboard', nav_analytics:'Analytics',
+    nav_manage:'Gestión', nav_tenants:'Tenants / Cuentas', nav_users:'Usuarios',
+    nav_campaigns:'Campañas', nav_business:'Negocio', nav_billing:'Billing / MRR',
+    nav_system:'Sistema', nav_activity:'Actividad',
+    // Topbar
+    live_label:'En tiempo real', btn_new_tenant:'+ Nuevo Tenant',
+    // KPIs
+    kpi_tenants:'Tenants Activos', kpi_tenants_sub:'▲ 2 este mes',
+    kpi_mrr:'MRR Total', kpi_mrr_sub:'▲ 18% vs mes ant.',
+    kpi_users:'Usuarios Totales', kpi_users_sub:'▲ 34 nuevos',
+    kpi_leads:'Leads en Sistema', kpi_leads_sub:'▲ 12% hoy',
+    kpi_arr:'ARR Proyectado', kpi_arr_sub:'▲ 18% crecimiento',
+    kpi_campaigns:'Campañas Activas', kpi_trial:'En Trial',
+    kpi_trial_sub:'→ conversión 72%', kpi_suspended:'Suspendidos',
+    kpi_suspended_sub:'▼ requieren acción',
+    // Charts
+    chart_mrr_title:'📈 Crecimiento MRR', chart_mrr_sub:'Últimos 6 meses',
+    chart_leads_title:'🎯 Leads por Día', chart_leads_sub:'Última semana',
+    card_top_tenants:'🏢 Top Tenants por Leads',
+    // Table headers
+    th_company:'Empresa', th_status:'Estado', th_users:'Usuarios',
+    th_created:'Creado', th_actions:'Acciones', th_user:'Usuario',
+    th_role:'Rol', th_campaign:'Campaña', th_platform:'Plataforma', th_spend:'Gasto',
+    // Filters
+    filter_all_status:'Todos los estados', status_active:'Activos', status_suspended:'Suspendidos',
+    ph_search_tenant:'Buscar tenant...', ph_search_user:'Buscar usuario...',
+    // Modal
+    modal_tenant_title:'🏢 Crear Nuevo Tenant',
+    field_company_name:'Nombre de la Empresa', ph_company_name:'Ej: Equipo MLM Pro',
+    field_slug:'Slug (URL única)', field_plan:'Plan', field_admin_email:'Email del Admin',
+    ph_admin_email:'admin@empresa.com',
+    plan_starter:'Starter — Gratis/Trial', plan_pro:'Pro — $299/mes',
+    plan_business:'Business — $599/mes', plan_enterprise:'Enterprise — Personalizado',
+    btn_cancel:'Cancelar', btn_create_tenant:'Crear Tenant →',
+    // Dynamic
+    loading:'Cargando...',
+    card_tenants_title:'🏢 Todas las Cuentas / Tenants',
+    // Page configs
+    page_dashboard_title:'Dashboard', page_dashboard_sub:'Vista general de la plataforma',
+    page_analytics_title:'Analytics Global', page_analytics_sub:'Métricas de toda la plataforma',
+    page_tenants_title:'Gestión de Tenants', page_tenants_sub:'Todas las cuentas SaaS',
+    page_users_title:'Gestión de Usuarios', page_users_sub:'Todos los usuarios del sistema',
+    page_campaigns_title:'Campañas Globales', page_campaigns_sub:'Todas las campañas activas',
+    page_billing_title:'Billing & MRR', page_billing_sub:'Ingresos y suscripciones',
+    page_system_title:'Estado del Sistema', page_system_sub:'Salud e infraestructura',
+    page_activity_title:'Log de Actividad', page_activity_sub:'Historial de eventos del sistema',
+    // Actions
+    action_new_tenant:'+ Nuevo Tenant', action_export_csv:'Exportar CSV',
+    action_invite_user:'+ Invitar Usuario', action_view_stats:'Ver Estadísticas',
+    action_export_report:'Exportar Reporte', action_refresh:'Refrescar',
+    action_download_log:'Descargar Log',
+    // Helpers
+    status_active_label:'Activo', status_trial_label:'Trial', status_suspended_label:'Suspendido',
+    role_super:'⚡ Super Admin', role_admin:'🏢 Admin', role_leader:'👑 Líder',
+    role_affiliate:'🤝 Afiliado', role_viewer:'👁 Viewer',
+    user_active:'Activo', user_inactive:'Inactivo',
+    btn_view:'Ver', btn_activate:'Activar', btn_suspend:'Suspender', btn_delete:'Eliminar',
+    btn_impersonate:'Impersonar',
+    // Toasts
+    toast_welcome:'¡Bienvenido de vuelta, ', toast_fill_fields:'Completa los campos requeridos',
+    toast_tenant_created:'creado exitosamente', toast_tenant_created_demo:'creado (demo)',
+    toast_tenant_suspended:'Tenant suspendido', toast_tenant_activated:'Tenant activado',
+    toast_tenant_deleted:'Tenant eliminado', toast_plan_changed:'Plan cambiado a',
+    toast_user_activated:'Usuario activado', toast_user_suspended:'Usuario suspendido',
+    toast_impersonating:'Impersonando a', toast_impersonate_info:'Función disponible en producción',
+    count_accounts:'cuentas registradas', count_users:'usuarios en el sistema',
+  },
+  en: {
+    // Login
+    login_sub:'Super Admin Panel', login_error:'Invalid credentials',
+    field_email:'Email', field_password:'Password', btn_login:'Sign In →',
+    demo_also:'Also',
+    // Sidebar
+    nav_main:'Main', nav_dashboard:'Dashboard', nav_analytics:'Analytics',
+    nav_manage:'Management', nav_tenants:'Tenants / Accounts', nav_users:'Users',
+    nav_campaigns:'Campaigns', nav_business:'Business', nav_billing:'Billing / MRR',
+    nav_system:'System', nav_activity:'Activity',
+    // Topbar
+    live_label:'Real time', btn_new_tenant:'+ New Tenant',
+    // KPIs
+    kpi_tenants:'Active Tenants', kpi_tenants_sub:'▲ 2 this month',
+    kpi_mrr:'Total MRR', kpi_mrr_sub:'▲ 18% vs last month',
+    kpi_users:'Total Users', kpi_users_sub:'▲ 34 new',
+    kpi_leads:'Leads in System', kpi_leads_sub:'▲ 12% today',
+    kpi_arr:'Projected ARR', kpi_arr_sub:'▲ 18% growth',
+    kpi_campaigns:'Active Campaigns', kpi_trial:'On Trial',
+    kpi_trial_sub:'→ 72% conversion', kpi_suspended:'Suspended',
+    kpi_suspended_sub:'▼ action required',
+    // Charts
+    chart_mrr_title:'📈 MRR Growth', chart_mrr_sub:'Last 6 months',
+    chart_leads_title:'🎯 Leads per Day', chart_leads_sub:'Last week',
+    card_top_tenants:'🏢 Top Tenants by Leads',
+    // Table headers
+    th_company:'Company', th_status:'Status', th_users:'Users',
+    th_created:'Created', th_actions:'Actions', th_user:'User',
+    th_role:'Role', th_campaign:'Campaign', th_platform:'Platform', th_spend:'Spend',
+    // Filters
+    filter_all_status:'All statuses', status_active:'Active', status_suspended:'Suspended',
+    ph_search_tenant:'Search tenant...', ph_search_user:'Search user...',
+    // Modal
+    modal_tenant_title:'🏢 Create New Tenant',
+    field_company_name:'Company Name', ph_company_name:'E.g.: MLM Pro Team',
+    field_slug:'Slug (unique URL)', field_plan:'Plan', field_admin_email:'Admin Email',
+    ph_admin_email:'admin@company.com',
+    plan_starter:'Starter — Free/Trial', plan_pro:'Pro — $299/mo',
+    plan_business:'Business — $599/mo', plan_enterprise:'Enterprise — Custom',
+    btn_cancel:'Cancel', btn_create_tenant:'Create Tenant →',
+    // Dynamic
+    loading:'Loading...',
+    card_tenants_title:'🏢 All Accounts / Tenants',
+    // Page configs
+    page_dashboard_title:'Dashboard', page_dashboard_sub:'Platform overview',
+    page_analytics_title:'Global Analytics', page_analytics_sub:'Metrics across the platform',
+    page_tenants_title:'Tenant Management', page_tenants_sub:'All SaaS accounts',
+    page_users_title:'User Management', page_users_sub:'All system users',
+    page_campaigns_title:'Global Campaigns', page_campaigns_sub:'All active campaigns',
+    page_billing_title:'Billing & MRR', page_billing_sub:'Revenue & subscriptions',
+    page_system_title:'System Status', page_system_sub:'Health & infrastructure',
+    page_activity_title:'Activity Log', page_activity_sub:'System event history',
+    // Actions
+    action_new_tenant:'+ New Tenant', action_export_csv:'Export CSV',
+    action_invite_user:'+ Invite User', action_view_stats:'View Stats',
+    action_export_report:'Export Report', action_refresh:'Refresh',
+    action_download_log:'Download Log',
+    // Helpers
+    status_active_label:'Active', status_trial_label:'Trial', status_suspended_label:'Suspended',
+    role_super:'⚡ Super Admin', role_admin:'🏢 Admin', role_leader:'👑 Leader',
+    role_affiliate:'🤝 Affiliate', role_viewer:'👁 Viewer',
+    user_active:'Active', user_inactive:'Inactive',
+    btn_view:'View', btn_activate:'Activate', btn_suspend:'Suspend', btn_delete:'Delete',
+    btn_impersonate:'Impersonate',
+    // Toasts
+    toast_welcome:'Welcome back, ', toast_fill_fields:'Please fill in required fields',
+    toast_tenant_created:'created successfully', toast_tenant_created_demo:'created (demo)',
+    toast_tenant_suspended:'Tenant suspended', toast_tenant_activated:'Tenant activated',
+    toast_tenant_deleted:'Tenant deleted', toast_plan_changed:'Plan changed to',
+    toast_user_activated:'User activated', toast_user_suspended:'User suspended',
+    toast_impersonating:'Impersonating ', toast_impersonate_info:'Feature available in production',
+    count_accounts:'registered accounts', count_users:'users in the system',
+  }
+};
+
+let currentLang = localStorage.getItem('mlm_lang') || 'es';
+
+function t(key) {
+  return TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('mlm_lang', lang);
+  // Update toggle buttons
+  ['es','en'].forEach(l => {
+    const btn1 = document.getElementById('lang-'+l);
+    const btn2 = document.getElementById('lang-'+l+'-login');
+    if(btn1) btn1.classList.toggle('active', l===lang);
+    if(btn2) btn2.classList.toggle('active', l===lang);
+  });
+  // Update all [data-i18n] elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if(val) el.textContent = val;
+  });
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const val = t(key);
+    if(val) el.placeholder = val;
+  });
+  // Re-render dynamic pageConfig
+  if(typeof pageConfig !== 'undefined') {
+    pageConfig.dashboard = { title:t('page_dashboard_title'), sub:t('page_dashboard_sub'), action:t('action_new_tenant') };
+    pageConfig.analytics = { title:t('page_analytics_title'), sub:t('page_analytics_sub'), action:t('action_export_csv') };
+    pageConfig.tenants   = { title:t('page_tenants_title'),  sub:t('page_tenants_sub'),  action:t('action_new_tenant') };
+    pageConfig.users     = { title:t('page_users_title'),    sub:t('page_users_sub'),    action:t('action_invite_user') };
+    pageConfig.campaigns = { title:t('page_campaigns_title'),sub:t('page_campaigns_sub'),action:t('action_view_stats') };
+    pageConfig.billing   = { title:t('page_billing_title'),  sub:t('page_billing_sub'),  action:t('action_export_report') };
+    pageConfig.system    = { title:t('page_system_title'),   sub:t('page_system_sub'),   action:t('action_refresh') };
+    pageConfig.activity  = { title:t('page_activity_title'), sub:t('page_activity_sub'), action:t('action_download_log') };
+    // Refresh active page title
+    const activePage = document.querySelector('.page.active')?.id?.replace('page-','');
+    if(activePage) {
+      const cfg = pageConfig[activePage] || {};
+      const el1 = document.getElementById('topbar-title');
+      const el2 = document.getElementById('topbar-sub');
+      const el3 = document.getElementById('topbar-action');
+      if(el1) el1.textContent = cfg.title || '';
+      if(el2) el2.textContent = cfg.sub || '';
+      if(el3) el3.textContent = cfg.action || '';
+    }
+  }
+  // Re-render tables so dynamic content also translates
+  if(allTenants.length) renderTenants(allTenants);
+  if(allUsers.length) renderUsers(allUsers);
+}
+
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const API = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+  ? `http://localhost:4000/api/v1`
+  : '/api/v1';
+
+let token = localStorage.getItem('mlm_token');
+let currentUser = null;
+let allTenants = [];
+let allUsers = [];
+let allCampaigns = [];
+let charts = {};
+
+// ════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('l-email').value;
+  const password = document.getElementById('l-password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = currentLang==='en'?'Signing in...':'Iniciando sesión...';
+
+  try {
+    const res = await apiFetch('/auth/login', 'POST', { email, password }, false);
+    token = res.accessToken;
+    localStorage.setItem('mlm_token', token);
+    currentUser = res.user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    document.getElementById('sb-name').textContent = `${res.user.firstName} ${res.user.lastName}`;
+    document.getElementById('sb-avatar').textContent = `${res.user.firstName[0]}${res.user.lastName[0]}`;
+    await loadAll();
+    toast(t('toast_welcome') + res.user.firstName + '!', 'success');
+  } catch(e) {
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = t('btn_login');
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('mlm_token');
+  token = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-shell').style.display = 'none';
+}
+
+document.getElementById('l-password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// ════════════════════════════════════════════════════════════
+// API CLIENT (con fallback a datos mock si no hay servidor)
+// ════════════════════════════════════════════════════════════
+async function apiFetch(path, method='GET', body=null, useToken=true) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (useToken && token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// Mock data para cuando no hay servidor
+const MOCK = {
+  stats: {
+    tenants: { total: 6, active: 4, trial: 1, suspended: 1 },
+    users: { total: 80, admins: 5 },
+    leads: { total: 6599 },
+    campaigns: { total: 3, active: 2 },
+    mrr: 1796, arr: 21552,
+    revenue: {
+      revenueByMonth: [
+        {month:'Ene',mrr:1200},{month:'Feb',mrr:1800},{month:'Mar',mrr:2400},
+        {month:'Abr',mrr:3100},{month:'May',mrr:3800},{month:'Jun',mrr:4600},
+      ],
+      leadsPerDay: [
+        {day:'Lun',leads:145},{day:'Mar',leads:223},{day:'Mié',leads:189},
+        {day:'Jue',leads:312},{day:'Vie',leads:287},{day:'Sáb',leads:167},{day:'Dom',leads:98},
+      ],
+    },
+  },
+  tenants: [
+    {id:'t1',name:'Equipo Alpha MLM',slug:'alpha-mlm',plan:'PRO',status:'active',usersCount:12,leadsCount:847,mrr:299,createdAt:'2024-01-15'},
+    {id:'t2',name:'Marketing Afiliados Pro',slug:'mkt-afiliados',plan:'BUSINESS',status:'active',usersCount:34,leadsCount:3204,mrr:599,createdAt:'2024-02-03'},
+    {id:'t3',name:'Red de Distribución Nacional',slug:'red-dist',plan:'STARTER',status:'trial',usersCount:3,leadsCount:45,mrr:0,createdAt:'2024-05-01'},
+    {id:'t4',name:'Ventas Directas Corp',slug:'ventas-corp',plan:'PRO',status:'active',usersCount:8,leadsCount:521,mrr:299,createdAt:'2024-03-12'},
+    {id:'t5',name:'Afiliados Digital Hub',slug:'afiliados-hub',plan:'BUSINESS',status:'active',usersCount:21,leadsCount:1893,mrr:599,createdAt:'2024-04-08'},
+    {id:'t6',name:'MLM Express',slug:'mlm-express',plan:'STARTER',status:'suspended',usersCount:2,leadsCount:89,mrr:0,createdAt:'2024-01-20'},
+  ],
+  users: [
+    {id:'u1',tenantId:'t1',email:'admin@alpha-mlm.com',firstName:'María',lastName:'González',role:'AGENCY_ADMIN',isActive:true,createdAt:'2024-01-15'},
+    {id:'u2',tenantId:'t2',email:'admin@mkt-afiliados.com',firstName:'Carlos',lastName:'Rodríguez',role:'AGENCY_ADMIN',isActive:true,createdAt:'2024-02-03'},
+    {id:'u3',tenantId:'t1',email:'lider@alpha-mlm.com',firstName:'Ana',lastName:'Martínez',role:'MLM_LEADER',isActive:true,createdAt:'2024-01-20'},
+    {id:'u4',tenantId:'t3',email:'admin@red-dist.com',firstName:'Pedro',lastName:'Sánchez',role:'AGENCY_ADMIN',isActive:true,createdAt:'2024-05-01'},
+    {id:'u5',tenantId:'t4',email:'admin@ventas-corp.com',firstName:'Laura',lastName:'Torres',role:'AGENCY_ADMIN',isActive:true,createdAt:'2024-03-12'},
+    {id:'u6',tenantId:'t5',email:'admin@afiliados-hub.com',firstName:'Diego',lastName:'Cruz',role:'AGENCY_ADMIN',isActive:true,createdAt:'2024-04-08'},
+    {id:'u_super',tenantId:null,email:'super@mlmsaas.com',firstName:'Super',lastName:'Admin',role:'SUPER_ADMIN',isActive:true,createdAt:'2024-01-01'},
+  ],
+  campaigns: [
+    {id:'c1',tenantId:'t1',name:'Campaña Meta Verano',platform:'META',status:'ACTIVE',spend:1250.50,leads:234,conversions:18,cpc:5.34,ctr:2.8,roas:3.2,createdAt:'2024-05-01'},
+    {id:'c2',tenantId:'t2',name:'TikTok Afiliados Q2',platform:'TIKTOK',status:'ACTIVE',spend:3400.00,leads:892,conversions:67,cpc:3.81,ctr:4.1,roas:5.8,createdAt:'2024-04-15'},
+    {id:'c3',tenantId:'t4',name:'Meta Leads Mayo',platform:'META',status:'PAUSED',spend:780.00,leads:123,conversions:9,cpc:6.34,ctr:1.9,roas:2.1,createdAt:'2024-05-10'},
+  ],
+};
+
+async function safeAPI(path, method='GET', body=null) {
+  try { return await apiFetch(path, method, body); }
+  catch(e) {
+    // Retornar datos mock si el servidor no está disponible
+    if(path==='/analytics/dashboard') return MOCK.stats;
+    if(path==='/tenants') return { data: MOCK.tenants };
+    if(path==='/users') return { data: MOCK.users };
+    if(path==='/campaigns') return { data: MOCK.campaigns };
+    return null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// LOAD ALL DATA
+// ════════════════════════════════════════════════════════════
+async function loadAll() {
+  await Promise.all([loadDashboard(), loadTenants(), loadUsers(), loadCampaigns()]);
+  renderActivity();
+}
+
+async function loadDashboard() {
+  const s = await safeAPI('/analytics/dashboard');
+  if (!s) return;
+
+  document.getElementById('kpi-tenants').textContent = s.tenants?.active || 0;
+  document.getElementById('kpi-mrr').textContent = '$' + (s.mrr || 0).toLocaleString();
+  document.getElementById('kpi-users').textContent = (s.users?.total || 0).toLocaleString();
+  document.getElementById('kpi-leads').textContent = (s.leads?.total || 0).toLocaleString();
+  document.getElementById('kpi-arr').textContent = '$' + (s.arr || 0).toLocaleString();
+  document.getElementById('kpi-campaigns').textContent = s.campaigns?.active || 0;
+  document.getElementById('kpi-trial').textContent = s.tenants?.trial || 0;
+  document.getElementById('kpi-suspended').textContent = s.tenants?.suspended || 0;
+
+  // Charts
+  const revenue = s.revenue?.revenueByMonth || MOCK.stats.revenue.revenueByMonth;
+  const leadsDay = s.revenue?.leadsPerDay || MOCK.stats.revenue.leadsPerDay;
+
+  renderChart('chartMRR', 'line', revenue.map(r=>r.month), revenue.map(r=>r.mrr), 'MRR ($)', '#6366f1');
+  renderChart('chartLeads', 'bar', leadsDay.map(r=>r.day), leadsDay.map(r=>r.leads), 'Leads', '#22c55e');
+
+  // Plans pie
+  const planData = [4, 2, 0]; // STARTER, PRO, BUSINESS (dummy)
+  renderPieChart('chartPlans', ['Starter','Pro','Business'], planData, ['#6b7280','#6366f1','#a855f7']);
+
+  // Top tenants list
+  renderTopTenants(MOCK.tenants);
+}
+
+function renderTopTenants(tenants) {
+  const sorted = [...tenants].sort((a,b) => b.leadsCount - a.leadsCount).slice(0,5);
+  const max = sorted[0]?.leadsCount || 1;
+  const el = document.getElementById('top-tenants-list');
+  el.innerHTML = sorted.map((t,i) => `
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+      <div style="width:24px;font-size:12px;font-weight:700;color:var(--muted)">#${i+1}</div>
+      <div class="tenant-icon" style="background:${tenantColor(t.plan)}">${t.name[0]}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);truncate">${t.name}</div>
+        <div class="progress-bar" style="margin-top:5px;height:4px">
+          <div class="progress-fill" style="width:${Math.round(t.leadsCount/max*100)}%;background:${tenantColor(t.plan)}"></div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">${t.leadsCount.toLocaleString()} leads</div>
+      <span class="badge ${t.plan.toLowerCase()}">${t.plan}</span>
+    </div>
+  `).join('');
+}
+
+async function loadTenants() {
+  const res = await safeAPI('/tenants');
+  allTenants = res?.data || MOCK.tenants;
+  document.getElementById('sb-tenants-count').textContent = allTenants.length;
+  renderTenants(allTenants);
+}
+
+function renderTenants(tenants) {
+  document.getElementById('tenants-count-label').textContent = `${tenants.length} ${t('count_accounts')}`;
+  document.getElementById('tenants-tbody').innerHTML = tenants.map(t => `
+    <tr>
+      <td>
+        <div class="tenant-row">
+          <div class="tenant-icon" style="background:${tenantColor(t.plan)}">${t.name[0]}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${t.slug}.mlmsaas.com</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge ${t.plan.toLowerCase()}">${t.plan}</span></td>
+      <td><span class="badge ${t.status}"><span class="badge-dot"></span>${statusLabel(t.status)}</span></td>
+      <td><span style="font-weight:600">${t.usersCount || 0}</span></td>
+      <td><span style="font-weight:600">${(t.leadsCount||0).toLocaleString()}</span></td>
+      <td><span style="color:var(--green);font-weight:700">${t.mrr ? '$'+t.mrr : '—'}</span></td>
+      <td><span style="color:var(--muted)">${t.createdAt?.slice(0,10) || '—'}</span></td>
+      <td>
+        <div class="flex gap-2">
+          <button class="action-btn" onclick="viewTenant('${t.id}')">${window.t('btn_view')}</button>
+          ${t.status==='suspended'
+            ? `<button class="action-btn green" onclick="toggleTenantStatus('${t.id}','active')">${window.t('btn_activate')}</button>`
+            : `<button class="action-btn" onclick="toggleTenantStatus('${t.id}','suspended')">${window.t('btn_suspend')}</button>`}
+          <button class="action-btn red" onclick="deleteTenant('${t.id}')">${window.t('btn_delete')}</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterTenants() {
+  const search = document.getElementById('tenant-search').value.toLowerCase();
+  const status = document.getElementById('tenant-filter').value;
+  renderTenants(allTenants.filter(t => {
+    const matchSearch = !search || t.name.toLowerCase().includes(search) || t.slug.toLowerCase().includes(search);
+    const matchStatus = !status || t.status === status;
+    return matchSearch && matchStatus;
+  }));
+}
+
+async function loadUsers() {
+  const res = await safeAPI('/users');
+  allUsers = res?.data || MOCK.users;
+  document.getElementById('users-count-label').textContent = `${allUsers.length} ${t('count_users')}`;
+  renderUsers(allUsers);
+}
+
+function renderUsers(users) {
+  document.getElementById('users-tbody').innerHTML = users.map(u => {
+    const tenant = allTenants.find(t => t.id === u.tenantId);
+    const initials = `${u.firstName[0]}${u.lastName[0]}`;
+    return `<tr>
+      <td>
+        <div class="flex items-center gap-2">
+          <div class="avatar" style="background:${avatarColor(u.role)}">${initials}</div>
+          <div>
+            <div style="font-weight:600;color:var(--text)">${u.firstName} ${u.lastName}</div>
+            <div style="font-size:11px;color:var(--muted)">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td><span style="font-size:12px;color:var(--muted)">${tenant?.name || (u.role==='SUPER_ADMIN' ? '⚡ Sistema' : '—')}</span></td>
+      <td><span class="badge ${roleClass(u.role)}">${roleLabel(u.role)}</span></td>
+      <td><span class="badge ${u.isActive ? 'active' : 'suspended'}">${u.isActive ? t('user_active') : t('user_inactive')}</span></td>
+      <td><span style="color:var(--muted);font-size:12px">${u.createdAt?.slice(0,10) || '—'}</span></td>
+      <td>
+        <div class="flex gap-2">
+          <button class="action-btn" onclick="impersonateUser('${u.id}')">${t('btn_impersonate')}</button>
+          <button class="action-btn ${u.isActive ? 'red' : 'green'}" onclick="toggleUser('${u.id}')">
+            ${u.isActive ? t('btn_suspend') : t('btn_activate')}
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterUsers() {
+  const search = document.getElementById('user-search').value.toLowerCase();
+  const role = document.getElementById('user-role-filter').value;
+  renderUsers(allUsers.filter(u => {
+    const matchSearch = !search || `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(search);
+    const matchRole = !role || u.role === role;
+    return matchSearch && matchRole;
+  }));
+}
+
+async function loadCampaigns() {
+  const res = await safeAPI('/campaigns');
+  allCampaigns = res?.data || MOCK.campaigns;
+  const totalSpend = allCampaigns.reduce((s,c) => s+(c.spend||0), 0);
+  const totalLeads = allCampaigns.reduce((s,c) => s+(c.leads||0), 0);
+  const active = allCampaigns.filter(c => c.status==='ACTIVE').length;
+
+  document.getElementById('c-total').textContent = allCampaigns.length;
+  document.getElementById('c-active').textContent = active;
+  document.getElementById('c-spend').textContent = '$' + totalSpend.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0});
+  document.getElementById('c-leads').textContent = totalLeads.toLocaleString();
+
+  document.getElementById('campaigns-tbody').innerHTML = allCampaigns.map(c => {
+    const tenant = allTenants.find(t => t.id === c.tenantId);
+    return `<tr>
+      <td><span style="font-weight:600">${c.name}</span></td>
+      <td><span style="font-size:12px;color:var(--muted)">${tenant?.name || c.tenantId}</span></td>
+      <td>
+        <span class="badge ${c.platform==='META'?'pro':'business'}">
+          ${c.platform==='META'?'📘 Meta':'🎵 TikTok'}
+        </span>
+      </td>
+      <td><span class="badge ${c.status==='ACTIVE'?'active':'suspended'}">${c.status}</span></td>
+      <td><span class="text-green font-mono">$${(c.spend||0).toFixed(2)}</span></td>
+      <td><span style="font-weight:600">${(c.leads||0).toLocaleString()}</span></td>
+      <td><span class="font-mono">$${(c.cpc||0).toFixed(2)}</span></td>
+      <td><span class="font-mono">${(c.ctr||0).toFixed(1)}%</span></td>
+      <td><span style="color:${(c.roas||0)>=3?'var(--green)':'var(--yellow)'};font-weight:700">${(c.roas||0).toFixed(1)}x</span></td>
+    </tr>`;
+  }).join('');
+
+  // Analytics table
+  document.getElementById('analytics-table').innerHTML = allCampaigns.map(c => {
+    const tenant = allTenants.find(t => t.id === c.tenantId);
+    return `<tr>
+      <td>${tenant?.name||c.tenantId}</td>
+      <td>${c.platform}</td>
+      <td class="text-green">$${(c.spend||0).toFixed(0)}</td>
+      <td>${c.leads||0}</td>
+      <td>${c.conversions||0}</td>
+      <td>$${(c.cpc||0).toFixed(2)}</td>
+      <td>${(c.ctr||0).toFixed(1)}%</td>
+      <td style="color:${(c.roas||0)>=3?'var(--green)':'var(--yellow)'}">${(c.roas||0).toFixed(1)}x</td>
+    </tr>`;
+  }).join('');
+
+  loadBilling();
+}
+
+function loadBilling() {
+  const mrr = allTenants.filter(t=>t.status==='active').reduce((s,t)=>s+(t.mrr||0),0);
+  document.getElementById('billing-mrr').textContent = '$'+mrr.toLocaleString();
+  document.getElementById('billing-arr').textContent = '$'+(mrr*12).toLocaleString();
+  document.getElementById('billing-active').textContent = allTenants.filter(t=>t.status==='active').length;
+
+  const planCounts = {STARTER:0,PRO:0,BUSINESS:0,ENTERPRISE:0};
+  const planMRR = {STARTER:0,PRO:299,BUSINESS:599,ENTERPRISE:1999};
+  allTenants.forEach(t => { if(planCounts[t.plan]!==undefined) planCounts[t.plan]++; });
+
+  document.getElementById('plans-billing-list').innerHTML = Object.entries(planCounts).map(([plan,count]) => `
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div class="flex items-center gap-2">
+        <span class="badge ${plan.toLowerCase()}">${plan}</span>
+        <span style="font-size:13px;color:var(--muted)">${count} cuenta${count!==1?'s':''}</span>
+      </div>
+      <span style="color:var(--green);font-weight:700">${count?'$'+(planMRR[plan]*count).toLocaleString()+'/mes':'—'}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('billing-tbody').innerHTML = allTenants.map(t => `
+    <tr>
+      <td><span style="font-weight:600">${t.name}</span></td>
+      <td><span class="badge ${t.plan.toLowerCase()}">${t.plan}</span></td>
+      <td><span class="badge ${t.status}">${statusLabel(t.status)}</span></td>
+      <td><span style="color:var(--green);font-weight:700">${t.mrr?'$'+t.mrr:t.status==='trial'?'Trial':'—'}</span></td>
+      <td><span style="color:var(--muted);font-size:12px">${t.status==='active'?'01/'+(new Date().getMonth()+2).toString().padStart(2,'0')+'/'+(new Date().getFullYear()):'—'}</span></td>
+      <td>
+        <select class="select" onchange="changePlan('${t.id}',this.value)" style="font-size:11px;padding:4px 8px">
+          <option ${t.plan==='STARTER'?'selected':''}>STARTER</option>
+          <option ${t.plan==='PRO'?'selected':''}>PRO</option>
+          <option ${t.plan==='BUSINESS'?'selected':''}>BUSINESS</option>
+          <option ${t.plan==='ENTERPRISE'?'selected':''}>ENTERPRISE</option>
+        </select>
+      </td>
+    </tr>
+  `).join('');
+
+  // Chart
+  renderChart('chartBillingMRR', 'line',
+    MOCK.stats.revenue.revenueByMonth.map(r=>r.month),
+    MOCK.stats.revenue.revenueByMonth.map(r=>r.mrr),
+    'MRR ($)', '#22c55e');
+}
+
+function renderActivity() {
+  const activities = [
+    {time:'hace 2m', event:'🟢 Nuevo tenant registrado: <b>Ventas MLM Express</b> (Plan PRO)', color:'var(--green)'},
+    {time:'hace 5m', event:'👤 Usuario admin@alpha-mlm.com inició sesión', color:'var(--primary-light)'},
+    {time:'hace 12m', event:'📢 Campaña "TikTok Q2" alcanzó 900 leads', color:'var(--yellow)'},
+    {time:'hace 18m', event:'💳 Pago recibido de <b>Marketing Afiliados Pro</b>: $599', color:'var(--green)'},
+    {time:'hace 34m', event:'⚠️ Rate limit alcanzado en TikTok Ads API', color:'var(--yellow)'},
+    {time:'hace 1h', event:'🔐 Intento de login fallido: unknown@hacker.com', color:'var(--red)'},
+    {time:'hace 1h', event:'🤖 Automatización "Bienvenida WhatsApp" ejecutada: 47 mensajes', color:'var(--cyan)'},
+    {time:'hace 2h', event:'📈 MRR actualizado: $1,796 (+$299 nuevo tenant)', color:'var(--green)'},
+    {time:'hace 3h', event:'⏸️ Tenant <b>MLM Express</b> suspendido por falta de pago', color:'var(--red)'},
+    {time:'hace 5h', event:'🔄 Migración de base de datos completada', color:'var(--primary-light)'},
+    {time:'hace 8h', event:'📱 900 mensajes de WhatsApp enviados correctamente', color:'var(--green)'},
+    {time:'ayer', event:'🚀 Deploy v1.4.2 completado exitosamente', color:'var(--cyan)'},
+  ];
+  document.getElementById('activity-log').innerHTML = activities.map(a =>
+    `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px">
+      <span style="color:var(--muted);min-width:70px;flex-shrink:0">${a.time}</span>
+      <span style="color:${a.color}">${a.event}</span>
+    </div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════════════════════════
+function renderChart(id, type, labels, data, label, color) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data,
+        borderColor: color,
+        backgroundColor: type==='line' ? color+'22' : color+'cc',
+        fill: type==='line',
+        tension: 0.4,
+        borderWidth: 2,
+        borderRadius: type==='bar' ? 6 : 0,
+        pointBackgroundColor: color,
+        pointRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.05)', drawBorder: false }, ticks: { color: '#7b82a0', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,.05)', drawBorder: false }, ticks: { color: '#7b82a0', font: { size: 11 } } },
+      },
+    },
+  });
+}
+
+function renderPieChart(id, labels, data, colors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderColor: 'var(--surface)', borderWidth: 2 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#7b82a0', font: { size: 11 }, padding: 16 } },
+      },
+    },
+  });
+}
+
+function renderAnalyticsCharts() {
+  renderChart('chartRevenue', 'bar',
+    MOCK.stats.revenue.revenueByMonth.map(r=>r.month),
+    MOCK.stats.revenue.revenueByMonth.map(r=>r.mrr),
+    'Revenue ($)', '#6366f1');
+  renderPieChart('chartPlatform',
+    ['Meta Ads','TikTok Ads','WhatsApp','Otros'],
+    [54,28,12,6],
+    ['#3b82f6','#a855f7','#22c55e','#f59e0b']);
+}
+
+// ════════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════════
+function topbarAction() {
+  const page = document.querySelector('.page.active')?.id;
+  if(page==='page-tenants'||page==='page-dashboard') openModal('modal-tenant');
+  else if(page==='page-users') toast('Invitar usuario — próximamente', 'info');
+  else openModal('modal-tenant');
+}
+
+async function createTenant() {
+  const name = document.getElementById('t-name').value.trim();
+  const slug = document.getElementById('t-slug').value.trim();
+  const plan = document.getElementById('t-plan').value;
+  const email = document.getElementById('t-email').value.trim();
+  if (!name || !slug) return toast('Completa los campos requeridos', 'error');
+
+  try {
+    await safeAPI('/tenants', 'POST', { name, slug, plan, mrr: plan==='PRO'?299:plan==='BUSINESS'?599:0 });
+    closeModal('modal-tenant');
+    await loadTenants();
+    toast(`✅ Tenant "${name}" creado exitosamente`, 'success');
+  } catch(e) {
+    // Agregar localmente si no hay servidor
+    allTenants.push({ id:'t_'+Date.now(), name, slug, plan, status:'active', usersCount:0, leadsCount:0, mrr:plan==='PRO'?299:plan==='BUSINESS'?599:0, createdAt:new Date().toISOString().slice(0,10) });
+    renderTenants(allTenants);
+    closeModal('modal-tenant');
+    toast(`✅ Tenant "${name}" creado (demo)`, 'success');
+  }
+}
+
+async function toggleTenantStatus(id, newStatus) {
+  try {
+    await safeAPI(`/tenants/${id}`, 'PATCH', { status: newStatus });
+  } catch {}
+  const t = allTenants.find(t=>t.id===id);
+  if (t) t.status = newStatus;
+  renderTenants(allTenants);
+  toast(`Tenant ${newStatus==='suspended'?'suspendido':'activado'}`, newStatus==='suspended'?'error':'success');
+}
+
+async function deleteTenant(id) {
+  if (!confirm('¿Eliminar este tenant? Esta acción no se puede deshacer.')) return;
+  allTenants = allTenants.filter(t=>t.id!==id);
+  renderTenants(allTenants);
+  toast('Tenant eliminado', 'error');
+}
+
+async function changePlan(id, plan) {
+  const t = allTenants.find(t=>t.id===id);
+  if (t) { t.plan = plan; t.mrr = plan==='PRO'?299:plan==='BUSINESS'?599:plan==='ENTERPRISE'?1999:0; }
+  toast(`Plan cambiado a ${plan}`, 'success');
+  loadBilling();
+}
+
+function viewTenant(id) {
+  const t = allTenants.find(t=>t.id===id);
+  if (!t) return;
+  alert(`🏢 ${t.name}\n\nPlan: ${t.plan}\nEstado: ${t.status}\nUsuarios: ${t.usersCount}\nLeads: ${t.leadsCount}\nMRR: $${t.mrr}\nSlug: ${t.slug}\nCreado: ${t.createdAt}`);
+}
+
+function toggleUser(id) {
+  const u = allUsers.find(u=>u.id===id);
+  if (u) u.isActive = !u.isActive;
+  filterUsers();
+  toast(u?.isActive ? 'Usuario activado' : 'Usuario suspendido', u?.isActive ? 'success' : 'error');
+}
+
+function impersonateUser(id) {
+  const u = allUsers.find(u=>u.id===id);
+  toast(`Impersonando a ${u?.firstName} ${u?.lastName} — abriendo sesión...`, 'info');
+  setTimeout(() => toast('Función disponible en producción con servidor activo', 'info'), 1500);
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+const pageConfig = {
+  dashboard: { title:'Dashboard', sub:'Vista general de la plataforma', action:'+ Nuevo Tenant' },
+  analytics: { title:'Analytics Global', sub:'Métricas de toda la plataforma', action:'Exportar CSV' },
+  tenants:   { title:'Gestión de Tenants', sub:'Todas las cuentas SaaS', action:'+ Nuevo Tenant' },
+  users:     { title:'Gestión de Usuarios', sub:'Todos los usuarios del sistema', action:'+ Invitar Usuario' },
+  campaigns: { title:'Campañas Globales', sub:'Todas las campañas activas', action:'Ver Estadísticas' },
+  billing:   { title:'Billing & MRR', sub:'Ingresos y suscripciones', action:'Exportar Reporte' },
+  system:    { title:'Estado del Sistema', sub:'Salud e infraestructura', action:'Refrescar' },
+  activity:  { title:'Log de Actividad', sub:'Historial de eventos del sistema', action:'Descargar Log' },
+};
+
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  const sbItem = document.querySelector(`.sb-item[onclick="nav('${page}')"]`);
+  if (sbItem) sbItem.classList.add('active');
+  const cfg = pageConfig[page] || {};
+  document.getElementById('topbar-title').textContent = cfg.title || page;
+  document.getElementById('topbar-sub').textContent = cfg.sub || '';
+  document.getElementById('topbar-action').textContent = cfg.action || 'Acción';
+  if (page === 'analytics') setTimeout(renderAnalyticsCharts, 100);
+  return false;
+}
+
+// ════════════════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+// ════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function tenantColor(plan) {
+  const c = { STARTER:'#6b7280', PRO:'#6366f1', BUSINESS:'#a855f7', ENTERPRISE:'#06b6d4' };
+  return c[plan] || '#6b7280';
+}
+function avatarColor(role) {
+  const c = { SUPER_ADMIN:'#ef4444', AGENCY_ADMIN:'#6366f1', MLM_LEADER:'#a855f7', AFFILIATE:'#22c55e', VIEWER:'#6b7280' };
+  return c[role] || '#6b7280';
+}
+function roleLabel(role) {
+  const l = { SUPER_ADMIN:t('role_super'), AGENCY_ADMIN:t('role_admin'), MLM_LEADER:t('role_leader'), AFFILIATE:t('role_affiliate'), VIEWER:t('role_viewer') };
+  return l[role] || role;
+}
+function roleClass(role) {
+  const c = { SUPER_ADMIN:'suspended', AGENCY_ADMIN:'pro', MLM_LEADER:'business', AFFILIATE:'active', VIEWER:'starter' };
+  return c[role] || '';
+}
+function statusLabel(s) {
+  return { active:t('status_active_label'), trial:t('status_trial_label'), suspended:t('status_suspended_label') }[s] || s;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  // Apply saved language
+  setLang(currentLang);
+
+  // Auto-login si hay token guardado
+  if (token) {
+    try {
+      const me = await apiFetch('/auth/me');
+      currentUser = me.user;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'flex';
+      document.getElementById('sb-name').textContent = `${me.user.firstName} ${me.user.lastName}`;
+      document.getElementById('sb-avatar').textContent = `${me.user.firstName[0]}${me.user.lastName[0]}`;
+      await loadAll();
+    } catch { token = null; localStorage.removeItem('mlm_token'); }
+  }
+
+  // Simular latencia del servidor en tiempo real
+  setInterval(() => {
+    const lat = Math.floor(Math.random() * 40 + 25);
+    const el = document.getElementById('sys-latency');
+    if (el) el.textContent = lat + 'ms';
+  }, 3000);
+});
+</script>
+</body>
+</html>

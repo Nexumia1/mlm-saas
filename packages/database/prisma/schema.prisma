@@ -1,0 +1,601 @@
+// ============================================================
+// MLM SaaS Platform — Schema de Base de Datos
+// Prisma ORM + PostgreSQL
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// MULTI-TENANT: TENANTS (Agencias / Equipos MLM)
+// ============================================================
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // dominio: miempresa.mlmsaas.com
+  logoUrl     String?
+  plan        Plan     @default(STARTER)
+  isActive    Boolean  @default(true)
+  trialEndsAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  users            User[]
+  campaigns        Campaign[]
+  contacts         Contact[]
+  leads            Lead[]
+  whatsappAccounts WhatsAppAccount[]
+  analyticsEvents  AnalyticsEvent[]
+  apiKeys          ApiKey[]
+  billing          Billing?
+  automations      Automation[]
+  mediaFiles       MediaFile[]
+  teams            Team[]
+
+  @@map("tenants")
+}
+
+enum Plan {
+  STARTER    // Hasta 3 usuarios, 500 leads
+  PRO        // Hasta 10 usuarios, 5000 leads
+  BUSINESS   // Hasta 50 usuarios, ilimitados leads
+  ENTERPRISE // Sin límites
+}
+
+// ============================================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================================
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String
+  password     String    // bcrypt hash
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  role         UserRole  @default(AFFILIATE)
+  isActive     Boolean   @default(true)
+  emailVerified Boolean  @default(false)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Auth tokens
+  refreshTokens RefreshToken[]
+
+  // Relaciones de negocio
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  teamMembers  TeamMember[]
+  assignedLeads Lead[]   @relation("AssignedTo")
+  createdLeads  Lead[]   @relation("CreatedBy")
+  campaigns    Campaign[]
+  activities   Activity[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN  // Acceso total al sistema
+  AGENCY_ADMIN // Admin de la cuenta/agencia
+  MLM_LEADER   // Líder de equipo MLM
+  AFFILIATE    // Afiliado/distribuidor
+  VIEWER       // Solo lectura
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// EQUIPOS
+// ============================================================
+
+model Team {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  parentId  String?  // Para jerarquía MLM (upline/downline)
+  createdAt DateTime @default(now())
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent    Team?        @relation("TeamHierarchy", fields: [parentId], references: [id])
+  children  Team[]       @relation("TeamHierarchy")
+  members   TeamMember[]
+
+  @@index([tenantId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String @id @default(cuid())
+  teamId   String
+  userId   String
+  role     String @default("member")
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// ============================================================
+// CRM — CONTACTOS Y LEADS
+// ============================================================
+
+model Contact {
+  id          String        @id @default(cuid())
+  tenantId    String
+  firstName   String
+  lastName    String?
+  email       String?
+  phone       String?
+  whatsapp    String?
+  country     String?
+  city        String?
+  source      ContactSource @default(MANUAL)
+  tags        String[]      // Array de tags
+  customFields Json?        // Campos personalizados
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads    Lead[]
+  messages WhatsAppMessage[]
+  activities Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([tenantId, phone])
+  @@map("contacts")
+}
+
+enum ContactSource {
+  MANUAL
+  META_ADS
+  TIKTOK_ADS
+  WHATSAPP
+  LANDING_PAGE
+  REFERRAL
+  IMPORT
+  API
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  tenantId     String
+  contactId    String
+  assignedToId String?    // Usuario asignado
+  createdById  String
+  title        String?
+  value        Float?     // Valor estimado del lead
+  status       LeadStatus @default(NEW)
+  stage        String     @default("Nuevo")
+  score        Int        @default(0) // Lead scoring 0-100
+  source       ContactSource @default(MANUAL)
+  campaignId   String?
+  notes        String?
+  lostReason   String?
+  expectedClose DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact    Contact   @relation(fields: [contactId], references: [id])
+  assignedTo User?     @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy  User      @relation("CreatedBy", fields: [createdById], references: [id])
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  activities Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedToId])
+  @@map("leads")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+// ============================================================
+// CAMPAÑAS PUBLICITARIAS
+// ============================================================
+
+model Campaign {
+  id          String         @id @default(cuid())
+  tenantId    String
+  userId      String         // Creador
+  name        String
+  description String?
+  platform    AdPlatform
+  status      CampaignStatus @default(DRAFT)
+  objective   String?        // LEADS, CONVERSIONS, TRAFFIC, etc.
+  budget      Float?
+  budgetType  BudgetType     @default(DAILY)
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // IDs externos de las plataformas
+  externalId  String?        // ID en Meta/TikTok
+  adAccountId String?
+
+  // Métricas en caché (actualizadas periódicamente)
+  impressions Int    @default(0)
+  clicks      Int    @default(0)
+  spend       Float  @default(0)
+  leads       Int    @default(0)
+  conversions Int    @default(0)
+  cpc         Float  @default(0)
+  ctr         Float  @default(0)
+  cpl         Float  @default(0)
+  roas        Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id])
+  leads    Lead[]
+  adSets   AdSet[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@index([tenantId])
+  @@index([tenantId, platform])
+  @@map("campaigns")
+}
+
+enum AdPlatform {
+  META
+  TIKTOK
+  GOOGLE
+  MANUAL
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+  ERROR
+}
+
+enum BudgetType {
+  DAILY
+  TOTAL
+}
+
+model AdSet {
+  id         String   @id @default(cuid())
+  campaignId String
+  name       String
+  externalId String?
+  targeting  Json?    // Configuración de audiencia
+  placement  String[]
+  budget     Float?
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("ad_sets")
+}
+
+// ============================================================
+// WHATSAPP BUSINESS API
+// ============================================================
+
+model WhatsAppAccount {
+  id           String  @id @default(cuid())
+  tenantId     String
+  phoneNumber  String
+  displayName  String
+  wabaId       String  // WhatsApp Business Account ID
+  phoneNumberId String // Phone Number ID de Meta
+  accessToken  String  // Token de acceso (encriptado)
+  webhookSecret String?
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations WhatsAppConversation[]
+
+  @@index([tenantId])
+  @@map("whatsapp_accounts")
+}
+
+model WhatsAppConversation {
+  id          String   @id @default(cuid())
+  accountId   String
+  contactId   String?
+  phoneNumber String   // Número del contacto externo
+  status      ConversationStatus @default(OPEN)
+  lastMessageAt DateTime?
+  createdAt   DateTime @default(now())
+
+  account  WhatsAppAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  messages WhatsAppMessage[]
+
+  @@index([accountId])
+  @@map("whatsapp_conversations")
+}
+
+enum ConversationStatus {
+  OPEN
+  RESOLVED
+  BOT_HANDLING
+  WAITING
+}
+
+model WhatsAppMessage {
+  id             String      @id @default(cuid())
+  conversationId String
+  contactId      String?
+  direction      MessageDirection
+  type           MessageType @default(TEXT)
+  content        String
+  mediaUrl       String?
+  externalId     String?     // ID del mensaje en WhatsApp
+  status         MessageStatus @default(SENT)
+  sentAt         DateTime    @default(now())
+
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contact      Contact?             @relation(fields: [contactId], references: [id])
+
+  @@index([conversationId])
+  @@map("whatsapp_messages")
+}
+
+enum MessageDirection {
+  INBOUND   // Del cliente hacia nosotros
+  OUTBOUND  // De nosotros hacia el cliente
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  TEMPLATE
+  INTERACTIVE
+  LOCATION
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// ============================================================
+// AUTOMATIZACIONES
+// ============================================================
+
+model Automation {
+  id          String           @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  trigger     AutomationTrigger
+  triggerConfig Json?          // Configuración específica del trigger
+  isActive    Boolean          @default(true)
+  executionCount Int           @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps  AutomationStep[]
+
+  @@index([tenantId])
+  @@map("automations")
+}
+
+enum AutomationTrigger {
+  NEW_LEAD
+  LEAD_STATUS_CHANGE
+  WHATSAPP_MESSAGE_RECEIVED
+  FORM_SUBMITTED
+  TAG_ADDED
+  SCHEDULED
+  CAMPAIGN_CONVERSION
+}
+
+model AutomationStep {
+  id           String   @id @default(cuid())
+  automationId String
+  order        Int
+  type         StepType
+  config       Json     // Configuración de la acción
+  delayMinutes Int      @default(0)
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@map("automation_steps")
+}
+
+enum StepType {
+  SEND_WHATSAPP
+  SEND_EMAIL
+  UPDATE_LEAD_STATUS
+  ASSIGN_TO_USER
+  ADD_TAG
+  REMOVE_TAG
+  WAIT
+  CONDITION
+  WEBHOOK
+  CREATE_TASK
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+
+model AnalyticsEvent {
+  id         String    @id @default(cuid())
+  tenantId   String
+  campaignId String?
+  eventType  String    // page_view, lead_created, conversion, etc.
+  platform   String?
+  properties Json?
+  userId     String?
+  sessionId  String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, eventType])
+  @@map("analytics_events")
+}
+
+// ============================================================
+// ACTIVIDADES (Timeline / Historial)
+// ============================================================
+
+model Activity {
+  id        String       @id @default(cuid())
+  tenantId  String?
+  userId    String?
+  contactId String?
+  leadId    String?
+  type      ActivityType
+  title     String
+  notes     String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  contact Contact? @relation(fields: [contactId], references: [id])
+  lead    Lead?    @relation(fields: [leadId], references: [id])
+
+  @@index([leadId])
+  @@index([contactId])
+  @@map("activities")
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  MEETING
+  WHATSAPP
+  STATUS_CHANGE
+  ASSIGNMENT
+  LEAD_CREATED
+  LEAD_WON
+  LEAD_LOST
+}
+
+// ============================================================
+// MEDIA / BIBLIOTECA DE ARCHIVOS
+// ============================================================
+
+model MediaFile {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  url        String
+  type       MediaType
+  mimeType   String
+  sizeBytes  Int
+  folder     String?
+  tags       String[]
+  uploadedAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("media_files")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+}
+
+// ============================================================
+// BILLING / SUSCRIPCIONES
+// ============================================================
+
+model Billing {
+  id               String        @id @default(cuid())
+  tenantId         String        @unique
+  stripeCustomerId String?       @unique
+  stripeSubId      String?       @unique
+  plan             Plan          @default(STARTER)
+  status           BillingStatus @default(TRIAL)
+  currentPeriodEnd DateTime?
+  cancelAtPeriodEnd Boolean      @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("billing")
+}
+
+enum BillingStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+// ============================================================
+// API KEYS (para integraciones)
+// ============================================================
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  key       String   @unique
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("api_keys")
+}
