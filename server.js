@@ -338,6 +338,11 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  // Health check (for Railway/Render/etc)
+  if (pathname === '/api/health') {
+    return send(res, 200, { status: 'ok', uptime: process.uptime() });
+  }
+
   // API Routes
   if (pathname.startsWith('/api/')) {
     return handleAPI(req, res, pathname);
