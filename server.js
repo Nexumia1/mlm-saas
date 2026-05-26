@@ -17,6 +17,9 @@ const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mlm_saas_super_secret_2024_cambiar_en_produccion';
 const DB_PATH = path.join(__dirname, 'data', 'db.json');
 
+// Pre-computed SHA-256 hash for 'Admin123!' (instant, no blocking)
+const DEMO_PASSWORD_HASH = 'a22625c44cd57c052d831d9667603af3c6af827277d200bc91393284cb8c33ae';
+
 // ─────────────────────────────────────────────────────────────
 // BASE DE DATOS JSON (en memoria + persistencia a archivo)
 // ─────────────────────────────────────────────────────────────
@@ -39,7 +42,7 @@ class JsonDB {
   }
 
   _seed() {
-    const adminPassword = this._hashPassword('Admin123!');
+    const adminPassword = DEMO_PASSWORD_HASH;
     const data = {
       tenants: [
         { id: 'tenant_1', name: 'Equipo Alpha MLM', slug: 'alpha-mlm', plan: 'PRO', status: 'active', createdAt: '2024-01-15', usersCount: 12, leadsCount: 847, mrr: 299, logoUrl: null },
@@ -79,7 +82,7 @@ class JsonDB {
   }
 
   _hashPassword(password) {
-    return crypto.pbkdf2Sync(password, 'mlm_salt_2024', 1000, 64, 'sha512').toString('hex');
+    return crypto.createHash('sha256').update(password + 'mlm_salt_2024').digest('hex');
   }
 
   verifyPassword(password, hash) {
@@ -273,7 +276,7 @@ async function handleAPI(req, res, pathname) {
     }
     if (method === 'POST') {
       const body = await parseBody(req);
-      const hashed = crypto.pbkdf2Sync(body.password || 'Temp123!', 'mlm_salt_2024', 100000, 64, 'sha512').toString('hex');
+      const hashed = crypto.createHash('sha256').update((body.password || 'Temp123!') + 'mlm_salt_2024').digest('hex');
       const user = db.create('users', { ...body, password: hashed, isActive: true });
       const { password: _, ...safeUser } = user;
       return send(res, 201, safeUser);
