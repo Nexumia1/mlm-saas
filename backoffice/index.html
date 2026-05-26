@@ -300,12 +300,12 @@ tr:hover td{background:#f8fafc}
               <div class="card-title">👥 Leads / Contactos</div>
               <div style="display:flex;gap:8px">
                 <input style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none;width:200px" placeholder="🔍 Buscar...">
-                <button class="btn btn-primary" onclick="toast('Lead creado ✅','ok')">+ Nuevo Lead</button>
+                <button class="btn btn-primary" onclick="openNewLeadModal()">+ Nuevo Lead</button>
               </div>
             </div>
             <table>
               <thead><tr><th>Contacto</th><th>Estado</th><th>Score</th><th>Valor</th><th>Fuente</th><th>Asignado</th><th>Acciones</th></tr></thead>
-              <tbody>
+              <tbody id="leads-tbody">
                 <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px">AL</div><div><b>Ana López</b><br><span style="font-size:11px;color:var(--muted)">+57 300 123 4567</span></div></div></td><td><span class="badge b-new">Nuevo</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:78%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">78</span></div></td><td style="color:var(--green);font-weight:700">$1,200</td><td>Meta Ads</td><td>María G.</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Contactando via WhatsApp...','ok')">WhatsApp</button></td></tr>
                 <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px">CR</div><div><b>Carlos Ruiz</b><br><span style="font-size:11px;color:var(--muted)">carlos@gmail.com</span></div></div></td><td><span class="badge b-qualified">Calificado</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:91%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">91</span></div></td><td style="color:var(--green);font-weight:700">$3,500</td><td>TikTok</td><td>Carlos R.</td><td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="toast('Llamando a Carlos...','ok')">Llamar</button></td></tr>
                 <tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:white;color:white;font-weight:700;font-size:12px;justify-content:center">DT</div><div><b>Diego Torres</b><br><span style="font-size:11px;color:var(--muted)">diego@empresa.co</span></div></div></td><td><span class="badge b-won">Ganado ✓</span></td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px"><div style="width:100%;height:100%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px">100</span></div></td><td style="color:var(--green);font-weight:700">$5,000</td><td>Meta Ads</td><td>Ana M.</td><td><span style="font-size:11px;color:var(--green);font-weight:600">✅ Cerrado</span></td></tr>
@@ -321,7 +321,7 @@ tr:hover td{background:#f8fafc}
               <div style="font-size:16px;font-weight:700">Pipeline Kanban</div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px">847 leads · $48,200 en pipeline</div>
             </div>
-            <button class="btn btn-primary" onclick="toast('Lead creado ✅','ok')">+ Nuevo Lead</button>
+            <button class="btn btn-primary" onclick="openNewLeadModal()">+ Nuevo Lead</button>
           </div>
           <div class="pipeline">
             <div class="pipeline-col">
@@ -483,6 +483,59 @@ tr:hover td{background:#f8fafc}
 </div><!-- app -->
 
 <div id="toast"></div>
+
+<!-- ── Modal Nuevo Lead ─────────────────────────────────────── -->
+<div id="modal-lead" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2);margin:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <h2 style="margin:0;font-size:18px;color:#0f172a" data-i18n="modal_lead_title">+ Nuevo Lead</h2>
+        <p style="margin:4px 0 0;font-size:12px;color:#64748b" data-i18n="modal_lead_sub">Registra un nuevo prospecto en tu CRM</p>
+      </div>
+      <button onclick="closeLeadModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1">✕</button>
+    </div>
+    <form id="lead-form" onsubmit="saveLead(event)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_name">Nombre completo *</label>
+          <input id="lead-name" required style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box" data-i18n-placeholder="ph_name" placeholder="Ej. María González">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_phone">Teléfono</label>
+          <input id="lead-phone" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box" placeholder="+57 300 000 0000">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_email">Email</label>
+          <input id="lead-email" type="email" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box" placeholder="correo@ejemplo.com">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_source">Fuente</label>
+          <select id="lead-source" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;background:white">
+            <option value="Meta Ads">📘 Meta Ads</option>
+            <option value="TikTok">🎵 TikTok</option>
+            <option value="WhatsApp">💬 WhatsApp</option>
+            <option value="Referido">👥 Referido</option>
+            <option value="Orgánico">🌱 Orgánico</option>
+            <option value="Instagram">📸 Instagram</option>
+            <option value="Otro">📌 Otro</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_value">Valor estimado ($)</label>
+          <input id="lead-value" type="number" min="0" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box" placeholder="0">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px" data-i18n="field_notes">Notas</label>
+          <textarea id="lead-notes" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical" data-i18n-placeholder="ph_notes" placeholder="Información adicional..."></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button type="button" onclick="closeLeadModal()" style="padding:9px 18px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer;color:#64748b" data-i18n="btn_cancel">Cancelar</button>
+        <button id="btn-save-lead" type="submit" style="padding:9px 22px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;font-size:13px;font-weight:600;cursor:pointer" data-i18n="btn_save">Guardar Lead</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -657,6 +710,7 @@ function initApp(data) {
   document.getElementById('tenant-name').textContent = tenant?.name || 'MLM SaaS';
   document.getElementById('tenant-plan').textContent = 'Plan ' + (tenant?.plan || 'PRO');
   setTimeout(initCharts, 300);
+  setTimeout(loadLeads, 500);
 }
 
 function logout() {
@@ -698,7 +752,95 @@ function nav(page) {
   if(page==='analytics') setTimeout(initAnalyticsCharts,100);
 }
 
-function topbarCta() { toast('Función disponible con servidor activo','info'); }
+// ── Modal Nuevo Lead ─────────────────────────────────────────────
+function topbarCta() {
+  const page = document.querySelector('.page.active');
+  const pageId = page ? page.id : '';
+  if (pageId === 'page-crm') openNewLeadModal();
+  else if (pageId === 'page-campaigns') toast(t('toast_coming_soon') || 'Próximamente','info');
+  else openNewLeadModal();
+}
+
+function openNewLeadModal() {
+  document.getElementById('modal-lead').style.display = 'flex';
+  document.getElementById('lead-name').focus();
+}
+function closeLeadModal() {
+  document.getElementById('modal-lead').style.display = 'none';
+  document.getElementById('lead-form').reset();
+}
+
+async function saveLead(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-save-lead');
+  btn.disabled = true; btn.textContent = '⏳ Guardando...';
+  const body = {
+    name:     document.getElementById('lead-name').value.trim(),
+    email:    document.getElementById('lead-email').value.trim(),
+    phone:    document.getElementById('lead-phone').value.trim(),
+    source:   document.getElementById('lead-source').value,
+    value:    parseFloat(document.getElementById('lead-value').value) || 0,
+    notes:    document.getElementById('lead-notes').value.trim(),
+    status:   'NEW',
+    score:    50,
+    createdAt: new Date().toISOString()
+  };
+  try {
+    const res = await fetch('/api/v1/crm/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast((t('toast_lead_created') || 'Lead creado ✅') + ' — ' + body.name, 'ok');
+      closeLeadModal();
+      loadLeads();
+    } else {
+      toast('Error: ' + (data.message || res.status), 'err');
+    }
+  } catch(err) {
+    toast('Error de conexión: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = t('btn_save') || 'Guardar Lead';
+  }
+}
+
+// Cargar y mostrar leads reales del servidor
+async function loadLeads() {
+  try {
+    const res = await fetch('/api/v1/crm/leads', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    const leads = data.data || [];
+    if (leads.length === 0) return;
+    const tbody = document.getElementById('leads-tbody');
+    if (!tbody) return;
+    const statusBadge = { NEW:'<span class="badge b-new">Nuevo</span>', CONTACTED:'<span class="badge b-qualified">Contactado</span>', QUALIFIED:'<span class="badge b-qualified">Calificado</span>', CONVERTED:'<span class="badge b-active">Convertido</span>' };
+    tbody.innerHTML = leads.map(l => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px">
+            ${(l.name||'?').charAt(0).toUpperCase()}
+          </div>
+          <div><b>${l.name||'Sin nombre'}</b><br>
+          <span style="font-size:11px;color:var(--muted)">${l.phone||l.email||''}</span></div>
+        </div></td>
+        <td>${statusBadge[l.status]||l.status}</td>
+        <td><div style="display:flex;align-items:center;gap:6px">
+          <div style="width:50px;height:4px;background:#f1f5f9;border-radius:2px">
+            <div style="width:${l.score||50}%;height:100%;background:var(--green);border-radius:2px"></div>
+          </div><span style="font-size:11px">${l.score||50}</span></div></td>
+        <td style="color:var(--green);font-weight:700">$${l.value||0}</td>
+        <td>${l.source||'—'}</td>
+        <td>${l.assignedTo||'—'}</td>
+        <td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px"
+          onclick="toast('${t('toast_whatsapp')||'Contactando...'}','ok')">WhatsApp</button></td>
+      </tr>`).join('');
+    document.querySelector('#page-crm .kpi-value') && (document.querySelector('#page-crm .kpi-value').textContent = leads.length);
+  } catch(e) { /* silently ignore */ }
+}
 
 function initCharts() {
   mkChart('ch-leads','bar',['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],[145,223,189,312,287,167,98],'Leads','#6366f1');
