@@ -306,13 +306,24 @@ async function handleAPI(req, res, pathname) {
 
   // ─ CRM
   if (resource === 'crm') {
-    if (id === 'leads' && method === 'GET') return send(res, 200, { data: [], meta: { total: 0 } });
+    if (id === 'leads' && method === 'GET') {
+      const allLeads = db.find('leads', l => payload.role === 'SUPER_ADMIN' ? true : l.tenantId === payload.tenantId);
+      return send(res, 200, { data: allLeads, meta: { total: allLeads.length } });
+    }
     if (id === 'leads' && method === 'POST') {
       const body = await parseBody(req);
       return send(res, 201, db.create('leads', { ...body, tenantId: payload.tenantId }));
     }
-    if (id === 'leads' && action === 'stats') return send(res, 200, { total: 0, byStatus: [] });
-    if (id === 'leads' && action === 'pipeline') return send(res, 200, []);
+    if (id === 'leads' && action === 'stats') {
+      const leads = db.find('leads', l => payload.role === 'SUPER_ADMIN' ? true : l.tenantId === payload.tenantId);
+      const byStatus = {};
+      leads.forEach(l => { byStatus[l.status || 'NEW'] = (byStatus[l.status || 'NEW'] || 0) + 1; });
+      return send(res, 200, { total: leads.length, byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count })) });
+    }
+    if (id === 'leads' && action === 'pipeline') {
+      const leads = db.find('leads', l => payload.role === 'SUPER_ADMIN' ? true : l.tenantId === payload.tenantId);
+      return send(res, 200, leads);
+    }
     if (id === 'contacts' && method === 'GET') return send(res, 200, { data: [], meta: { total: 0 } });
   }
 
