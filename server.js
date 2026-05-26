@@ -79,11 +79,12 @@ class JsonDB {
   }
 
   _hashPassword(password) {
-    return crypto.pbkdf2Sync(password, 'mlm_salt_2024', 100000, 64, 'sha512').toString('hex');
+    return crypto.pbkdf2Sync(password, 'mlm_salt_2024', 1000, 64, 'sha512').toString('hex');
   }
 
   verifyPassword(password, hash) {
     const hashed = this._hashPassword(password);
+    if (hashed.length !== hash.length) return false;
     return crypto.timingSafeEqual(Buffer.from(hashed), Buffer.from(hash));
   }
 
